@@ -31,40 +31,43 @@ Required raw files are copied into `data/raw/`:
 - `pubchem_properties_xlogp.csv`
 - `GoldStandardAffinities.zip`
 - `old_PSB_Data.xlsx`
+- `pdb_chain_uniprot.tsv.gz`
 
 The Yamanishi gold standard uses KEGG IDs:
 
 - drugs: `Dxxxxx`
 - human targets: `hsa:<gene_id>`
 
-Local features use PubChem CIDs, UniProt IDs, and PDB-chain IDs. The build
-script resolves:
+Local features use PubChem CIDs, UniProt IDs, and PDB-chain affinity rows. The
+build script resolves:
 
 ```text
 KEGG drug -> PubChem CID -> ligand descriptors -> affinity file
-KEGG target -> UniProt -> PDB_CHAIN
+KEGG target -> UniProt
+affinity PDB_CHAIN rows -> UniProt by SIFTS -> target-comparable pairwise features
 ```
 
-The current `UniProt -> PDB_CHAIN` bridge comes from `old_PSB_Data.xlsx`, so
-coverage is partial.
+The classifier target key is UniProt. PDB chains are only used as the raw
+coordinate system inside `GoldStandardAffinities.zip`, then aggregated to
+UniProt with `pdb_chain_uniprot.tsv.gz`.
 
 ## Coverage
 
 The full Yamanishi gold standard has 5,127 positive ligand-target pairs. The
-canonical positive-row artifact contains only the positives that can be joined
-all the way to local features:
+all-positive label artifact contains all 5,127. The feature-complete joined
+artifact contains only positives that can be joined all the way to local
+features:
 
 ```text
 total Yamanishi positives:                  5,127
-joined positives with complete features:    1,507
+joined positives with complete features:    2,721
 ```
 
 Current attrition:
 
 ```text
-missing UniProt -> PDB_CHAIN bridge:        2,625
+missing UniProt affinity for target:        1,462
 missing ligand affinity file:                 886
-missing exact PDB_CHAIN in affinity file:       51
 missing PubChem descriptor row:                24
 missing KEGG drug -> PubChem CID mapping:      21
 missing KEGG target -> UniProt mapping:        13
@@ -94,8 +97,16 @@ Default output:
 
 - `data/processed/yamanishi_positive_rows.csv`
 
-This positive-row file is the canonical joined artifact. It contains only
+This positive-row file is the feature-complete joined artifact. It contains only
 Yamanishi-known interactions with complete local features.
+
+The full positive-label table is:
+
+- `data/processed/yamanishi_all_positive_pairs.csv`
+
+That file contains all 5,127 Yamanishi positives, regardless of feature
+availability. Its `feature_status` column explains whether each pair is
+feature-complete or which join is missing.
 
 Balanced negative examples should be generated at training time, because they
 are a sampling policy rather than ground truth. To materialize one deterministic
@@ -104,14 +115,14 @@ balanced sample for inspection or an experiment, use:
 ```bash
 python3 scripts/build_dataset.py \
   --include-negatives \
-  --classifier-output data/processed/yamanishi_classifier_dataset_seed42.csv
+  --classifier-output data/processed/yamanishi_classifier_dataset.csv
 ```
 
 Use a different `--seed` to create a different negative sample.
 
 ## Train Baselines
 
-The training script generates balanced negatives at runtime and trains the old
+The training script generates balanced negatives at runtime and trains the
 baseline model family:
 
 ```bash
@@ -124,32 +135,17 @@ Outputs:
 - `results/training_manifest.json`
 
 The current baseline run uses `seed=42`, a random stratified 80/20 row split,
-1,507 positive rows, and 1,507 runtime-sampled negatives. It uses the new
-affinity archive, `data/raw/GoldStandardAffinities.zip`; `old_PSB_Data.xlsx` is
-only used as a UniProt-to-PDB-chain bridge.
+2,721 positive rows, and 2,721 runtime-sampled negatives. It uses
+`data/raw/GoldStandardAffinities.zip` aggregated to UniProt through SIFTS.
 
-The best clean non-graph feature set is `pairwise + ligand_all + target`:
-
-```text
-Random Forest:     accuracy 0.725, F1 0.725, ROC-AUC 0.774, PR-AUC 0.792
-Gradient Boosting: accuracy 0.710, F1 0.706, ROC-AUC 0.760, PR-AUC 0.771
-SVM:               accuracy 0.701, F1 0.700, ROC-AUC 0.742, PR-AUC 0.708
-```
-
-The `all_available` feature set also includes Yamanishi graph-degree features
-and category one-hot features. It performs much better:
+The baseline feature sets are restricted to pairwise affinity/rank features and
+PubChem ligand descriptors. Current best baseline results:
 
 ```text
-Random Forest:     accuracy 0.849, F1 0.848, ROC-AUC 0.916, PR-AUC 0.922
-Gradient Boosting: accuracy 0.842, F1 0.844, ROC-AUC 0.919, PR-AUC 0.917
-Logistic Reg.:     accuracy 0.837, F1 0.837, ROC-AUC 0.890, PR-AUC 0.877
+SVM, pairwise + ligand_all:               accuracy 0.703, F1 0.703, ROC-AUC 0.765, PR-AUC 0.779
+Gradient Boosting, pairwise + ligand_all: accuracy 0.705, F1 0.700, ROC-AUC 0.767, PR-AUC 0.768
+Random Forest, pairwise + ligand_all:     accuracy 0.687, F1 0.683, ROC-AUC 0.761, PR-AUC 0.779
 ```
-
-Interpret the graph-degree run carefully: those degree features are computed
-from the full Yamanishi label graph, so they are useful for old-style
-network-feature experiments but are not a strict holdout-generalization setup.
-For stricter evaluation, compute graph features on the training split only or
-use grouped splits by ligand/target.
 
 ## Advanced Clean Sweep
 
@@ -175,10 +171,10 @@ This excludes Yamanishi graph-degree, category, and target-count features. The
 current best clean results are:
 
 ```text
-Extra Trees tuned:            accuracy 0.675, F1 0.678, ROC-AUC 0.734, PR-AUC 0.748
-Random Forest tuned:          accuracy 0.673, F1 0.677, ROC-AUC 0.730, PR-AUC 0.744
-Hist Gradient Boosting tuned: accuracy 0.675, F1 0.684, ROC-AUC 0.725, PR-AUC 0.735
-Gradient Boosting tuned:      accuracy 0.668, F1 0.681, ROC-AUC 0.729, PR-AUC 0.728
+Extra Trees tuned:            accuracy 0.734, F1 0.720, ROC-AUC 0.791, PR-AUC 0.804
+Random Forest tuned:          accuracy 0.729, F1 0.722, ROC-AUC 0.793, PR-AUC 0.808
+Hist Gradient Boosting tuned: accuracy 0.727, F1 0.722, ROC-AUC 0.796, PR-AUC 0.807
+Gradient Boosting tuned:      accuracy 0.724, F1 0.715, ROC-AUC 0.788, PR-AUC 0.793
 ```
 
 ## Deep Learning
@@ -198,7 +194,8 @@ These models use the same clean feature set as the advanced sweep. Current best
 MLP:
 
 ```text
-MLP 256-128: accuracy 0.670, F1 0.685, ROC-AUC 0.738, PR-AUC 0.730
+MLP 64: accuracy 0.736, F1 0.727, ROC-AUC 0.778, PR-AUC 0.783
+MLP 128-64-32: accuracy 0.729, F1 0.711, ROC-AUC 0.783, PR-AUC 0.795
 ```
 
 The MLP is competitive on F1 and ROC-AUC, but the tuned tree ensembles still

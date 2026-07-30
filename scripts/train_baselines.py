@@ -34,21 +34,6 @@ from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS  # noqa: E402
 
 PAIRWISE_FEATURES = ["affinity", "rank", "inverted_rank", "proportion"]
 LIGAND_MODEL_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
-TARGET_FEATURES = [
-    "target_uniprot_count",
-    "target_pdb_candidate_count",
-]
-GRAPH_FEATURES = [
-    "target_yamanishi_degree",
-    "ligand_yamanishi_degree",
-]
-CATEGORY_FEATURES = [
-    "category_enzyme",
-    "category_gpcr",
-    "category_ion_channel",
-    "category_nuclear_receptor",
-]
-
 
 def feature_sets() -> dict[str, list[str]]:
     return {
@@ -58,15 +43,6 @@ def feature_sets() -> dict[str, list[str]]:
         "affinity + inverted_rank": ["affinity", "inverted_rank"],
         "pairwise": PAIRWISE_FEATURES,
         "pairwise + ligand_all": PAIRWISE_FEATURES + LIGAND_MODEL_FEATURES,
-        "pairwise + target": PAIRWISE_FEATURES + TARGET_FEATURES,
-        "pairwise + ligand_all + target": PAIRWISE_FEATURES + LIGAND_MODEL_FEATURES + TARGET_FEATURES,
-        "all_available": (
-            PAIRWISE_FEATURES
-            + LIGAND_MODEL_FEATURES
-            + TARGET_FEATURES
-            + GRAPH_FEATURES
-            + CATEGORY_FEATURES
-        ),
     }
 
 

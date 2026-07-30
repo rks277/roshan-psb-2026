@@ -32,13 +32,11 @@ def main() -> None:
             reason = "missing_ligand_affinity_file"
         elif key.kegg_target not in builder.hsa_to_uniprot:
             reason = "missing_kegg_target_to_uniprot"
-        elif not builder._target_candidates(key.kegg_target):
-            reason = "missing_uniprot_to_pdb_bridge"
         else:
-            affinity_table = builder._load_affinity_table(cid)
-            candidates = builder._target_candidates(key.kegg_target)
-            if not any(pdb_id in affinity_table for _, pdb_id in candidates):
-                reason = "missing_exact_pdb_chain_in_affinity_file"
+            affinity_table = builder._load_uniprot_affinity_table(cid)
+            target_uniprots = builder.hsa_to_uniprot.get(key.kegg_target, [])
+            if not any(uniprot in affinity_table for uniprot in target_uniprots):
+                reason = "missing_uniprot_affinity_for_target"
             else:
                 reason = "joined"
 

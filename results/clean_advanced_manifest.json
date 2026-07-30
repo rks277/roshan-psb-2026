@@ -1,9 +1,9 @@
 {
   "seed": 42,
   "test_size": 0.2,
-  "positive_rows": 1507,
-  "negative_rows": 1507,
-  "total_rows": 3014,
+  "positive_rows": 2721,
+  "negative_rows": 2721,
+  "total_rows": 5442,
   "features": [
     "affinity",
     "rank",
@@ -45,13 +45,13 @@
   "include_slow": false,
   "best_params": {
     "Logistic L2 tuned": {
-      "model__C": 8.926655057071823,
+      "model__C": 12.243063209765618,
       "model__class_weight": null
     },
     "Linear SGD tuned": {
-      "model__alpha": 0.006184815096277165,
-      "model__class_weight": "balanced",
-      "model__penalty": "l1"
+      "model__alpha": 0.007329939418114051,
+      "model__class_weight": null,
+      "model__penalty": "l2"
     },
     "Random Forest tuned": {
       "model__class_weight": "balanced",

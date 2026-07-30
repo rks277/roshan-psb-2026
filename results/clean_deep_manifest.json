@@ -1,8 +1,8 @@
 {
   "seed": 42,
-  "positive_rows": 1507,
-  "negative_rows": 1507,
-  "total_rows": 3014,
+  "positive_rows": 2721,
+  "negative_rows": 2721,
+  "total_rows": 5442,
   "features": [
     "affinity",
     "rank",

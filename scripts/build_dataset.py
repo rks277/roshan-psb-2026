@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import random
 import re
 import xml.etree.ElementTree as ET
@@ -160,10 +161,11 @@ class DatasetBuilder:
         self.drug_to_cid = self._load_drug_to_cid()
         self.hsa_to_uniprot = self._load_hsa_to_uniprot()
         self.ligands = self._load_ligands()
-        self.uniprot_to_pdb = self._load_uniprot_to_pdb()
+        self.pdb_chain_to_uniprot, self.pdb_to_uniprots = self._load_sifts_mapping()
         self.affinity_files = self._index_affinity_files()
         self.ligand_degrees, self.target_degrees = self._compute_label_degrees()
         self._affinity_cache: dict[str, dict[str, float]] = {}
+        self._uniprot_affinity_cache: dict[str, dict[str, float]] = {}
 
     def _load_labels(self) -> set[PairKey]:
         labels = set()
@@ -199,16 +201,28 @@ class DatasetBuilder:
         with path.open(newline="") as handle:
             return {row["CID"].strip(): row for row in csv.DictReader(handle)}
 
-    def _load_uniprot_to_pdb(self) -> dict[str, list[str]]:
-        """Use the old classifier table as the available UniProt -> PDB_CHAIN bridge."""
-        rows = read_xlsx_sheet(self.data_dir / "old_PSB_Data.xlsx", "original")
-        out: dict[str, set[str]] = defaultdict(set)
-        for row in rows:
-            uniprot = row["uniprot_id"].strip()
-            pdb_id = row["pdb_id"].strip()
-            if uniprot and pdb_id:
-                out[uniprot].add(pdb_id)
-        return {key: sorted(value) for key, value in out.items()}
+    def _load_sifts_mapping(self) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+        """Load PDB-chain -> UniProt mappings from SIFTS."""
+        path = self.data_dir / "pdb_chain_uniprot.tsv.gz"
+        if not path.exists():
+            return {}, {}
+        chain_to_uniprot: dict[str, set[str]] = defaultdict(set)
+        pdb_to_uniprots: dict[str, set[str]] = defaultdict(set)
+        with gzip.open(path, "rt", newline="") as handle:
+            for line in handle:
+                if line.startswith("#"):
+                    continue
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) < 3 or parts[0] == "PDB":
+                    continue
+                pdb_id = parts[0].upper()
+                chain = parts[1]
+                uniprot = parts[2].strip()
+                if not pdb_id or not chain or not uniprot:
+                    continue
+                chain_to_uniprot[f"{pdb_id}_{chain}"].add(uniprot)
+                pdb_to_uniprots[pdb_id].add(uniprot)
+        return dict(chain_to_uniprot), dict(pdb_to_uniprots)
 
     def _index_affinity_files(self) -> dict[str, list[str]]:
         out: dict[str, list[str]] = defaultdict(list)
@@ -252,24 +266,35 @@ class DatasetBuilder:
         self._affinity_cache[cid] = values
         return values
 
-    def _target_candidates(self, kegg_target: str) -> list[tuple[str, str]]:
-        candidates = []
-        for uniprot in self.hsa_to_uniprot.get(kegg_target, []):
-            for pdb_id in self.uniprot_to_pdb.get(uniprot, []):
-                candidates.append((uniprot, pdb_id))
-        return candidates
+    def _load_uniprot_affinity_table(self, cid: str) -> dict[str, float]:
+        if cid in self._uniprot_affinity_cache:
+            return self._uniprot_affinity_cache[cid]
 
-    def pairwise_features(self, cid: str, pdb_id: str) -> dict[str, float] | None:
-        affinity_table = self._load_affinity_table(cid)
-        if pdb_id not in affinity_table:
+        pdb_affinities = self._load_affinity_table(cid)
+        uniprot_affinities: dict[str, float] = {}
+        for pdb_chain, affinity in pdb_affinities.items():
+            pdb_id = pdb_chain.split("_", 1)[0].upper()
+            uniprots = self.pdb_chain_to_uniprot.get(pdb_chain)
+            if not uniprots:
+                uniprots = self.pdb_to_uniprots.get(pdb_id, set())
+            for uniprot in uniprots:
+                if uniprot not in uniprot_affinities or affinity < uniprot_affinities[uniprot]:
+                    uniprot_affinities[uniprot] = affinity
+
+        self._uniprot_affinity_cache[cid] = uniprot_affinities
+        return uniprot_affinities
+
+    def pairwise_features(self, cid: str, uniprot_id: str) -> dict[str, float] | None:
+        affinity_table = self._load_uniprot_affinity_table(cid)
+        if uniprot_id not in affinity_table:
             return None
         ranked = sorted(affinity_table.items(), key=lambda item: item[1])
         total = len(ranked)
-        positions = {target_pdb: index + 1 for index, (target_pdb, _) in enumerate(ranked)}
-        inverted_rank = positions[pdb_id]
+        positions = {target_uniprot: index + 1 for index, (target_uniprot, _) in enumerate(ranked)}
+        inverted_rank = positions[uniprot_id]
         rank = total - inverted_rank
         return {
-            "affinity": affinity_table[pdb_id],
+            "affinity": affinity_table[uniprot_id],
             "rank": rank,
             "total": total,
             "inverted_rank": inverted_rank,
@@ -284,19 +309,16 @@ class DatasetBuilder:
         if ligand is None:
             return None
 
-        affinity_table = self._load_affinity_table(cid)
+        affinity_table = self._load_uniprot_affinity_table(cid)
         if not affinity_table:
             return None
 
-        chosen_uniprot = ""
-        chosen_pdb = ""
-        pairwise = None
-        for uniprot, pdb_id in self._target_candidates(kegg_target):
-            if pdb_id in affinity_table:
-                chosen_uniprot = uniprot
-                chosen_pdb = pdb_id
-                pairwise = self.pairwise_features(cid, pdb_id)
-                break
+        target_uniprots = self.hsa_to_uniprot.get(kegg_target, [])
+        choices = [(affinity_table[uniprot], uniprot) for uniprot in target_uniprots if uniprot in affinity_table]
+        if not choices:
+            return None
+        _, chosen_uniprot = min(choices, key=lambda item: item[0])
+        pairwise = self.pairwise_features(cid, chosen_uniprot)
         if pairwise is None:
             return None
 
@@ -308,9 +330,7 @@ class DatasetBuilder:
             "ligand_title": ligand.get("Title", ""),
             "kegg_target": kegg_target,
             "uniprot_id": chosen_uniprot,
-            "pdb_id": chosen_pdb,
             "target_uniprot_count": str(len(self.hsa_to_uniprot.get(kegg_target, []))),
-            "target_pdb_candidate_count": str(len(self._target_candidates(kegg_target))),
             "target_yamanishi_degree": str(self.target_degrees.get((category, kegg_target), 0)),
             "ligand_yamanishi_degree": str(self.ligand_degrees.get((category, kegg_drug), 0)),
             "label": str(label),
