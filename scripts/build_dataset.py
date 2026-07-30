@@ -13,6 +13,7 @@ category.
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import gzip
 import random
@@ -67,6 +68,14 @@ LIGAND_FEATURE_COLUMNS = [
     "ConformerCount3D",
     "XLogP",
     "MW",
+]
+
+AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
+TARGET_FEATURE_COLUMNS = [
+    "length",
+    "mass",
+    "degree_up",
+    *[f"aa_{aa}" for aa in AMINO_ACIDS],
 ]
 
 
@@ -161,6 +170,7 @@ class DatasetBuilder:
         self.drug_to_cid = self._load_drug_to_cid()
         self.hsa_to_uniprot = self._load_hsa_to_uniprot()
         self.ligands = self._load_ligands()
+        self.target_features = self._load_target_features()
         self.pdb_chain_to_uniprot, self.pdb_to_uniprots = self._load_sifts_mapping()
         self.affinity_files = self._index_affinity_files()
         self.ligand_degrees, self.target_degrees = self._compute_label_degrees()
@@ -200,6 +210,30 @@ class DatasetBuilder:
         path = self.data_dir / "pubchem_properties_xlogp.csv"
         with path.open(newline="") as handle:
             return {row["CID"].strip(): row for row in csv.DictReader(handle)}
+
+    def _load_target_features(self) -> dict[str, dict[str, str]]:
+        path = self.data_dir / "features.tsv"
+        if not path.exists():
+            return {}
+        out = {}
+        with path.open(newline="") as handle:
+            for row in csv.DictReader(handle, delimiter="\t"):
+                uniprot = row.get("entry", "").strip()
+                if not uniprot:
+                    continue
+                features = {
+                    "length": row.get("length", ""),
+                    "mass": row.get("mass", ""),
+                    "degree_up": row.get("degree (UP)", ""),
+                }
+                try:
+                    composition = ast.literal_eval(row.get("composition", "{}"))
+                except (SyntaxError, ValueError):
+                    composition = {}
+                for aa in AMINO_ACIDS:
+                    features[f"aa_{aa}"] = str(composition.get(aa, ""))
+                out[uniprot] = features
+        return out
 
     def _load_sifts_mapping(self) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
         """Load PDB-chain -> UniProt mappings from SIFTS."""
@@ -337,6 +371,9 @@ class DatasetBuilder:
         }
         for column in LIGAND_FEATURE_COLUMNS:
             row[f"ligand_{column}"] = ligand.get(column, "")
+        target_features = self.target_features.get(chosen_uniprot, {})
+        for column in TARGET_FEATURE_COLUMNS:
+            row[f"target_{column}"] = target_features.get(column, "")
         for key, value in pairwise.items():
             row[key] = str(value)
         return row

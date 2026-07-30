@@ -30,10 +30,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS  # noqa: E402
+from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
 
 PAIRWISE_FEATURES = ["affinity", "rank", "inverted_rank", "proportion"]
 LIGAND_MODEL_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
+TARGET_MODEL_FEATURES = [f"target_{column}" for column in TARGET_FEATURE_COLUMNS]
 
 def feature_sets() -> dict[str, list[str]]:
     return {
@@ -43,6 +44,10 @@ def feature_sets() -> dict[str, list[str]]:
         "affinity + inverted_rank": ["affinity", "inverted_rank"],
         "pairwise": PAIRWISE_FEATURES,
         "pairwise + ligand_all": PAIRWISE_FEATURES + LIGAND_MODEL_FEATURES,
+        "pairwise + target_all": PAIRWISE_FEATURES + TARGET_MODEL_FEATURES,
+        "pairwise + ligand_all + target_all": (
+            PAIRWISE_FEATURES + LIGAND_MODEL_FEATURES + TARGET_MODEL_FEATURES
+        ),
     }
 
 
@@ -181,6 +186,7 @@ def main() -> None:
         },
         "feature_sets": selected_feature_sets,
         "ligand_feature_columns_available": LIGAND_FEATURE_COLUMNS,
+        "target_feature_columns_available": TARGET_FEATURE_COLUMNS,
     }
     manifest_path = args.results_dir / "training_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")

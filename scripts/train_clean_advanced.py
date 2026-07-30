@@ -5,6 +5,7 @@ Clean features are restricted to:
 
 - pairwise docking/rank values from GoldStandardAffinities.zip
 - numeric ligand descriptors from pubchem_properties_xlogp.csv
+- numeric protein target features from features.tsv
 
 Yamanishi labels are used only as the binary target. No Yamanishi graph-degree,
 category, or target-count features are included.
@@ -47,11 +48,16 @@ from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.svm import SVC
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS  # noqa: E402
+from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
 
 PAIRWISE_FEATURES = ["affinity", "rank", "inverted_rank", "proportion"]
 LIGAND_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
-CLEAN_FEATURES = PAIRWISE_FEATURES + LIGAND_FEATURES
+TARGET_FEATURES = [f"target_{column}" for column in TARGET_FEATURE_COLUMNS]
+FEATURE_SETS = {
+    "clean_pairwise_plus_pubchem": PAIRWISE_FEATURES + LIGAND_FEATURES,
+    "pairwise_plus_target": PAIRWISE_FEATURES + TARGET_FEATURES,
+    "pairwise_plus_pubchem_plus_target": PAIRWISE_FEATURES + LIGAND_FEATURES + TARGET_FEATURES,
+}
 
 
 def numeric_matrix(rows: list[dict[str, str]], columns: list[str]) -> np.ndarray:
@@ -222,7 +228,6 @@ def main() -> None:
     positives = builder.build_positive_rows()
     negatives = builder.build_negative_rows(category_counts(positives))
     rows = positives + negatives
-    X = numeric_matrix(rows, CLEAN_FEATURES)
     y = np.asarray([int(row["label"]) for row in rows], dtype=int)
 
     train_idx, test_idx = train_test_split(
@@ -231,46 +236,49 @@ def main() -> None:
         random_state=args.seed,
         stratify=y,
     )
-    X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
 
     cv = StratifiedKFold(n_splits=args.cv, shuffle=True, random_state=args.seed)
     results = []
     best_params = {}
-    for name, (pipeline, param_dist) in candidate_models(args.seed, include_slow=args.include_slow).items():
-        if param_dist:
-            search = RandomizedSearchCV(
-                pipeline,
-                param_distributions=param_dist,
-                n_iter=args.n_iter,
-                scoring="average_precision",
-                cv=cv,
-                random_state=args.seed,
-                n_jobs=1,
-                refit=True,
-            )
-            search.fit(X_train, y_train)
-            model = search.best_estimator_
-            best_params[name] = search.best_params_
-            cv_score = float(search.best_score_)
-        else:
-            model = pipeline.fit(X_train, y_train)
-            best_params[name] = {}
-            cv_score = float("nan")
+    for feature_set_name, columns in FEATURE_SETS.items():
+        X = numeric_matrix(rows, columns)
+        X_train, X_test = X[train_idx], X[test_idx]
+        for name, (pipeline, param_dist) in candidate_models(args.seed, include_slow=args.include_slow).items():
+            result_key = f"{feature_set_name}::{name}"
+            if param_dist:
+                search = RandomizedSearchCV(
+                    pipeline,
+                    param_distributions=param_dist,
+                    n_iter=args.n_iter,
+                    scoring="average_precision",
+                    cv=cv,
+                    random_state=args.seed,
+                    n_jobs=1,
+                    refit=True,
+                )
+                search.fit(X_train, y_train)
+                model = search.best_estimator_
+                best_params[result_key] = search.best_params_
+                cv_score = float(search.best_score_)
+            else:
+                model = pipeline.fit(X_train, y_train)
+                best_params[result_key] = {}
+                cv_score = float("nan")
 
-        y_pred = model.predict(X_test)
-        y_score = scores(model, X_test)
-        results.append(
-            {
-                "Feature Set": "clean_pairwise_plus_pubchem",
-                "Classifier": name,
-                "Train Rows": len(train_idx),
-                "Test Rows": len(test_idx),
-                "Features": len(CLEAN_FEATURES),
-                "CV PR AUC": cv_score,
-                **evaluate(y_test, y_pred, y_score),
-            }
-        )
+            y_pred = model.predict(X_test)
+            y_score = scores(model, X_test)
+            results.append(
+                {
+                    "Feature Set": feature_set_name,
+                    "Classifier": name,
+                    "Train Rows": len(train_idx),
+                    "Test Rows": len(test_idx),
+                    "Features": len(columns),
+                    "CV PR AUC": cv_score,
+                    **evaluate(y_test, y_pred, y_score),
+                }
+            )
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
     metrics_path = args.results_dir / "clean_advanced_metrics.csv"
@@ -285,7 +293,7 @@ def main() -> None:
         "positive_rows": len(positives),
         "negative_rows": len(negatives),
         "total_rows": len(rows),
-        "features": CLEAN_FEATURES,
+        "feature_sets": FEATURE_SETS,
         "n_iter": args.n_iter,
         "cv": args.cv,
         "include_slow": args.include_slow,
@@ -298,7 +306,7 @@ def main() -> None:
     print(f"Wrote manifest: {manifest_path}")
     for row in sorted(results, key=lambda item: item["PR AUC"], reverse=True):
         print(
-            f"{row['Classifier']:<30} acc={row['Accuracy']:.3f} "
+            f"{row['Feature Set']:35s} {row['Classifier']:<30} acc={row['Accuracy']:.3f} "
             f"f1={row['F1 Score']:.3f} roc_auc={row['ROC AUC']:.3f} "
             f"pr_auc={row['PR AUC']:.3f} cv_pr_auc={row['CV PR AUC']:.3f}"
         )

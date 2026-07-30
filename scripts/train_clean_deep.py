@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Train small PyTorch MLPs on the clean PSB 2026 feature set.
 
-Clean features are restricted to pairwise docking/rank features and PubChem
-numeric ligand descriptors. Yamanishi is used only for labels.
+Clean features are pairwise docking/rank features, PubChem numeric ligand
+descriptors, and numeric protein target features. Yamanishi is used only for
+labels.
 """
 
 from __future__ import annotations
@@ -33,11 +34,12 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS  # noqa: E402
+from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
 
 PAIRWISE_FEATURES = ["affinity", "rank", "inverted_rank", "proportion"]
 LIGAND_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
-CLEAN_FEATURES = PAIRWISE_FEATURES + LIGAND_FEATURES
+TARGET_FEATURES = [f"target_{column}" for column in TARGET_FEATURE_COLUMNS]
+CLEAN_FEATURES = PAIRWISE_FEATURES + LIGAND_FEATURES + TARGET_FEATURES
 
 
 def set_seeds(seed: int) -> None:
@@ -231,7 +233,7 @@ def main() -> None:
         test_score = predict(model, X_test, args.batch_size)
         results.append(
             {
-                "Feature Set": "clean_pairwise_plus_pubchem",
+                "Feature Set": "pairwise_plus_pubchem_plus_target",
                 "Classifier": config["name"],
                 "Train Rows": len(train_idx),
                 "Validation Rows": len(val_idx),

@@ -32,6 +32,7 @@ Required raw files are copied into `data/raw/`:
 - `GoldStandardAffinities.zip`
 - `old_PSB_Data.xlsx`
 - `pdb_chain_uniprot.tsv.gz`
+- `features.tsv`
 
 The Yamanishi gold standard uses KEGG IDs:
 
@@ -45,11 +46,13 @@ build script resolves:
 KEGG drug -> PubChem CID -> ligand descriptors -> affinity file
 KEGG target -> UniProt
 affinity PDB_CHAIN rows -> UniProt by SIFTS -> target-comparable pairwise features
+UniProt -> protein target features
 ```
 
 The classifier target key is UniProt. PDB chains are only used as the raw
 coordinate system inside `GoldStandardAffinities.zip`, then aggregated to
-UniProt with `pdb_chain_uniprot.tsv.gz`.
+UniProt with `pdb_chain_uniprot.tsv.gz`. Protein target features come from
+`features.tsv` and are joined by UniProt.
 
 ## Coverage
 
@@ -138,22 +141,24 @@ The current baseline run uses `seed=42`, a random stratified 80/20 row split,
 2,721 positive rows, and 2,721 runtime-sampled negatives. It uses
 `data/raw/GoldStandardAffinities.zip` aggregated to UniProt through SIFTS.
 
-The baseline feature sets are restricted to pairwise affinity/rank features and
-PubChem ligand descriptors. Current best baseline results:
+The baseline feature sets now compare pairwise-only, pairwise plus PubChem
+ligand descriptors, pairwise plus protein target features, and the combined
+feature set. Current best baseline results:
 
 ```text
-SVM, pairwise + ligand_all:               accuracy 0.703, F1 0.703, ROC-AUC 0.765, PR-AUC 0.779
-Gradient Boosting, pairwise + ligand_all: accuracy 0.705, F1 0.700, ROC-AUC 0.767, PR-AUC 0.768
-Random Forest, pairwise + ligand_all:     accuracy 0.687, F1 0.683, ROC-AUC 0.761, PR-AUC 0.779
+Random Forest, pairwise + ligand_all + target_all:     accuracy 0.819, F1 0.822, ROC-AUC 0.907, PR-AUC 0.914
+SVM, pairwise + ligand_all + target_all:               accuracy 0.786, F1 0.786, ROC-AUC 0.865, PR-AUC 0.869
+Gradient Boosting, pairwise + ligand_all + target_all: accuracy 0.778, F1 0.778, ROC-AUC 0.834, PR-AUC 0.828
 ```
 
 ## Advanced Clean Sweep
 
-For a stricter sweep using only the agreed feature sources:
+For a stricter sweep using the agreed feature sources:
 
 ```text
 GoldStandardAffinities.zip pairwise features
 + pubchem_properties_xlogp.csv numeric ligand descriptors
++ features.tsv numeric protein target features
 ```
 
 run:
@@ -168,13 +173,13 @@ Outputs:
 - `results/clean_advanced_manifest.json`
 
 This excludes Yamanishi graph-degree, category, and target-count features. The
-current best clean results are:
+current best tuned results are:
 
 ```text
-Extra Trees tuned:            accuracy 0.734, F1 0.720, ROC-AUC 0.791, PR-AUC 0.804
-Random Forest tuned:          accuracy 0.729, F1 0.722, ROC-AUC 0.793, PR-AUC 0.808
-Hist Gradient Boosting tuned: accuracy 0.727, F1 0.722, ROC-AUC 0.796, PR-AUC 0.807
-Gradient Boosting tuned:      accuracy 0.724, F1 0.715, ROC-AUC 0.788, PR-AUC 0.793
+Random Forest tuned, pairwise + PubChem + target:          accuracy 0.833, F1 0.835, ROC-AUC 0.909, PR-AUC 0.918
+Hist Gradient Boosting tuned, pairwise + PubChem + target: accuracy 0.830, F1 0.833, ROC-AUC 0.909, PR-AUC 0.909
+Gradient Boosting tuned, pairwise + PubChem + target:      accuracy 0.809, F1 0.811, ROC-AUC 0.879, PR-AUC 0.879
+Extra Trees tuned, pairwise + PubChem + target:            accuracy 0.792, F1 0.792, ROC-AUC 0.871, PR-AUC 0.881
 ```
 
 ## Deep Learning
@@ -190,12 +195,12 @@ Outputs:
 - `results/clean_deep_metrics.csv`
 - `results/clean_deep_manifest.json`
 
-These models use the same clean feature set as the advanced sweep. Current best
-MLP:
+These models use the combined pairwise + PubChem + target feature set. Current
+best MLP:
 
 ```text
-MLP 64: accuracy 0.736, F1 0.727, ROC-AUC 0.778, PR-AUC 0.783
-MLP 128-64-32: accuracy 0.729, F1 0.711, ROC-AUC 0.783, PR-AUC 0.795
+MLP 128-64-32: accuracy 0.812, F1 0.808, ROC-AUC 0.879, PR-AUC 0.878
+MLP 256-128:   accuracy 0.794, F1 0.801, ROC-AUC 0.878, PR-AUC 0.882
 ```
 
 The MLP is competitive on F1 and ROC-AUC, but the tuned tree ensembles still

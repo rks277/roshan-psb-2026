@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import json
 import sys
@@ -26,13 +27,16 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_dataset import LIGAND_FEATURE_COLUMNS, read_xlsx_sheet  # noqa: E402
+from build_dataset import LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS, read_xlsx_sheet  # noqa: E402
 
 PAIRWISE_FEATURES = ["affinity", "rank", "inverted_rank", "proportion"]
 LIGAND_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
+TARGET_FEATURES = [f"target_{column}" for column in TARGET_FEATURE_COLUMNS]
 FEATURE_SETS = {
     "pairwise": PAIRWISE_FEATURES,
     "pairwise + ligand_all": PAIRWISE_FEATURES + LIGAND_FEATURES,
+    "pairwise + target_all": PAIRWISE_FEATURES + TARGET_FEATURES,
+    "pairwise + ligand_all + target_all": PAIRWISE_FEATURES + LIGAND_FEATURES + TARGET_FEATURES,
 }
 
 
@@ -41,7 +45,34 @@ def load_ligands(path: Path) -> dict[str, dict[str, str]]:
         return {row["CID"].strip(): row for row in csv.DictReader(handle)}
 
 
-def load_bindingdb_rows(workbook: Path, ligands: dict[str, dict[str, str]]) -> list[dict[str, str]]:
+def load_target_features(path: Path) -> dict[str, dict[str, str]]:
+    out = {}
+    with path.open(newline="") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            uniprot = row["entry"].strip()
+            if not uniprot:
+                continue
+            try:
+                composition = ast.literal_eval(row.get("composition", "{}"))
+            except (SyntaxError, ValueError):
+                composition = {}
+            features = {
+                "length": row.get("length", ""),
+                "mass": row.get("mass", ""),
+                "degree_up": row.get("degree (UP)", ""),
+            }
+            for column in TARGET_FEATURE_COLUMNS:
+                if column.startswith("aa_"):
+                    features[column] = str(composition.get(column.removeprefix("aa_"), ""))
+            out[uniprot] = features
+    return out
+
+
+def load_bindingdb_rows(
+    workbook: Path,
+    ligands: dict[str, dict[str, str]],
+    targets: dict[str, dict[str, str]],
+) -> list[dict[str, str]]:
     rows = []
     for row in read_xlsx_sheet(workbook, "original"):
         if row.get("label") not in {"0", "1"}:
@@ -53,6 +84,9 @@ def load_bindingdb_rows(workbook: Path, ligands: dict[str, dict[str, str]]) -> l
         ligand = ligands.get(cid, {})
         for column in LIGAND_FEATURE_COLUMNS:
             out[f"ligand_{column}"] = ligand.get(column, "")
+        target = targets.get(out["uniprot_id"], {})
+        for column in TARGET_FEATURE_COLUMNS:
+            out[f"target_{column}"] = target.get(column, "")
         rows.append(out)
     return rows
 
@@ -132,8 +166,9 @@ def main() -> None:
     args = parser.parse_args()
 
     ligands = load_ligands(args.data_dir / "pubchem_properties_xlogp.csv")
+    targets = load_target_features(args.data_dir / "features.tsv")
     train_rows = load_csv_rows(args.yamanishi)
-    test_rows = load_bindingdb_rows(args.data_dir / "old_PSB_Data.xlsx", ligands)
+    test_rows = load_bindingdb_rows(args.data_dir / "old_PSB_Data.xlsx", ligands, targets)
     y_train = labels(train_rows)
     y_test = labels(test_rows)
 
