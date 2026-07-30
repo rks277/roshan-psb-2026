@@ -48,6 +48,40 @@ KEGG target -> UniProt -> PDB_CHAIN
 The current `UniProt -> PDB_CHAIN` bridge comes from `old_PSB_Data.xlsx`, so
 coverage is partial.
 
+## Coverage
+
+The full Yamanishi gold standard has 5,127 positive ligand-target pairs. The
+canonical positive-row artifact contains only the positives that can be joined
+all the way to local features:
+
+```text
+total Yamanishi positives:                  5,127
+joined positives with complete features:    1,507
+```
+
+Current attrition:
+
+```text
+missing UniProt -> PDB_CHAIN bridge:        2,625
+missing ligand affinity file:                 886
+missing exact PDB_CHAIN in affinity file:       51
+missing PubChem descriptor row:                24
+missing KEGG drug -> PubChem CID mapping:      21
+missing KEGG target -> UniProt mapping:        13
+```
+
+Coverage reports can be regenerated with:
+
+```bash
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/report_coverage.py
+```
+
+Outputs:
+
+- `results/coverage_summary.csv`
+- `results/coverage_by_category.csv`
+- `results/coverage_missing_examples.csv`
+
 ## Build
 
 From this folder:

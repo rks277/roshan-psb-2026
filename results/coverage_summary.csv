@@ -1,0 +1,9 @@
+step_or_reason,positive_pairs
+total_yamanishi_positive_pairs,5127
+missing_uniprot_to_pdb_bridge,2625
+joined,1507
+missing_ligand_affinity_file,886
+missing_exact_pdb_chain_in_affinity_file,51
+missing_pubchem_descriptor_row,24
+missing_kegg_drug_to_pubchem_cid,21
+missing_kegg_target_to_uniprot,13
