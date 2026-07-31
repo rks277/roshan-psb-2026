@@ -1,5 +1,5 @@
 category,joined,missing_kegg_drug_to_pubchem_cid,missing_kegg_target_to_uniprot,missing_ligand_affinity_file,missing_pubchem_descriptor_row,missing_uniprot_affinity_for_target,total
-enzyme,1683,13,13,602,0,615,2926
+enzyme,1682,13,13,602,0,616,2926
 gpcr,415,8,0,64,9,139,635
 ion_channel,537,0,0,219,15,705,1476
 nuclear_receptor,86,0,0,1,0,3,90

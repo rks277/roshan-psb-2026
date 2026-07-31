@@ -1,0 +1,10 @@
+uniprot_id,top_hit_count,exclusion_rule
+P15328,30,top_hit_count>=10
+Q9UGL1,23,top_hit_count>=10
+P21589,21,top_hit_count>=10
+P17516,11,top_hit_count>=10
+Q8N335,11,top_hit_count>=10
+Q16819,11,top_hit_count>=10
+P0DPD7,11,top_hit_count>=10
+P50225,10,top_hit_count>=10
+O14744,10,top_hit_count>=10

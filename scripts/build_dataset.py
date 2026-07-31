@@ -168,6 +168,7 @@ class DatasetBuilder:
         self.hsa_to_uniprot = self._load_hsa_to_uniprot()
         self.ligands = self._load_ligands()
         self.target_features = self._load_target_features()
+        self.excluded_affinity_uniprots = self._load_excluded_affinity_uniprots()
         self.pdb_chain_to_uniprot, self.pdb_to_uniprots = self._load_sifts_mapping()
         self.affinity_files = self._index_affinity_files()
         self.ligand_degrees, self.target_degrees = self._compute_label_degrees()
@@ -225,6 +226,17 @@ class DatasetBuilder:
                 }
                 out[uniprot] = features
         return out
+
+    def _load_excluded_affinity_uniprots(self) -> set[str]:
+        path = self.data_dir / "excluded_top_affinity_uniprots.csv"
+        if not path.exists():
+            return set()
+        with path.open(newline="") as handle:
+            return {
+                row["uniprot_id"].strip()
+                for row in csv.DictReader(handle)
+                if row.get("uniprot_id")
+            }
 
     def _load_sifts_mapping(self) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
         """Load PDB-chain -> UniProt mappings from SIFTS."""
@@ -303,6 +315,8 @@ class DatasetBuilder:
             if not uniprots:
                 uniprots = self.pdb_to_uniprots.get(pdb_id, set())
             for uniprot in uniprots:
+                if uniprot in self.excluded_affinity_uniprots:
+                    continue
                 if uniprot not in uniprot_affinities or affinity < uniprot_affinities[uniprot]:
                     uniprot_affinities[uniprot] = affinity
 

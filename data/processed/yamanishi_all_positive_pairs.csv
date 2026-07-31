@@ -973,7 +973,7 @@ enzyme,D00501,4740,Pentoxifylline,hsa:306,P12429,1,feature_complete
 enzyme,D00501,4740,Pentoxifylline,hsa:30833,Q8TCD5;V9HWF3,1,feature_complete
 enzyme,D00501,4740,Pentoxifylline,hsa:339221,Q6UWV6,1,feature_complete
 enzyme,D00501,4740,Pentoxifylline,hsa:3612,P29218,1,feature_complete
-enzyme,D00501,4740,Pentoxifylline,hsa:4907,P21589;Q6NZX3,1,feature_complete
+enzyme,D00501,4740,Pentoxifylline,hsa:4907,P21589;Q6NZX3,1,missing_uniprot_affinity_for_target
 enzyme,D00501,4740,Pentoxifylline,hsa:51095,Q96Q11,1,feature_complete
 enzyme,D00501,4740,Pentoxifylline,hsa:51172,Q9UK23,1,missing_uniprot_affinity_for_target
 enzyme,D00501,4740,Pentoxifylline,hsa:51251,Q9H0P0;X6RM59,1,feature_complete

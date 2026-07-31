@@ -54,6 +54,11 @@ coordinate system inside `GoldStandardAffinities.zip`, then aggregated to
 UniProt with `pdb_chain_uniprot.tsv.gz`. Protein target features come from
 `features.tsv` and are joined by UniProt.
 
+The affinity join excludes frequent raw top-hit proteins listed in
+`data/raw/excluded_top_affinity_uniprots.csv`. These are UniProt IDs that most
+often appear as the best, most negative affinity hit across ligand affinity
+tables.
+
 ## Coverage
 
 The full Yamanishi gold standard has 5,127 positive ligand-target pairs. The
@@ -63,13 +68,13 @@ features:
 
 ```text
 total Yamanishi positives:                  5,127
-joined positives with complete features:    2,721
+joined positives with complete features:    2,720
 ```
 
 Current attrition:
 
 ```text
-missing UniProt affinity for target:        1,462
+missing UniProt affinity for target:        1,463
 missing ligand affinity file:                 886
 missing PubChem descriptor row:                24
 missing KEGG drug -> PubChem CID mapping:      21
@@ -138,7 +143,7 @@ Outputs:
 - `results/training_manifest.json`
 
 The current baseline run uses `seed=42`, a random stratified 80/20 row split,
-2,721 positive rows, and 2,721 runtime-sampled negatives. It uses
+2,720 positive rows, and 2,720 runtime-sampled negatives. It uses
 `data/raw/GoldStandardAffinities.zip` aggregated to UniProt through SIFTS.
 
 The baseline feature sets now compare pairwise-only, pairwise plus PubChem
@@ -147,9 +152,9 @@ feature set. Protein target features are restricted to length, mass, and
 degree. Current best baseline results:
 
 ```text
-Random Forest, pairwise + ligand_all + target_all:     accuracy 0.778, F1 0.777, ROC-AUC 0.864, PR-AUC 0.880
-Gradient Boosting, pairwise + ligand_all + target_all: accuracy 0.729, F1 0.726, ROC-AUC 0.812, PR-AUC 0.813
-SVM, pairwise + ligand_all + target_all:               accuracy 0.720, F1 0.721, ROC-AUC 0.776, PR-AUC 0.786
+Random Forest, pairwise + ligand_all + target_all:     accuracy 0.802, F1 0.801, ROC-AUC 0.876, PR-AUC 0.890
+Gradient Boosting, pairwise + ligand_all + target_all: accuracy 0.733, F1 0.734, ROC-AUC 0.821, PR-AUC 0.828
+KNN, pairwise + ligand_all + target_all:               accuracy 0.720, F1 0.725, ROC-AUC 0.791, PR-AUC 0.774
 ```
 
 ## Advanced Clean Sweep
