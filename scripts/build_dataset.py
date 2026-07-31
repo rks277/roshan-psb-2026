@@ -75,6 +75,8 @@ TARGET_FEATURE_COLUMNS = [
     "degree_up",
 ]
 
+TOP_AFFINITY_HIT_LIMIT = 20
+
 
 def column_index(cell_ref: str | None) -> int:
     match = re.match(r"([A-Z]+)", cell_ref or "")
@@ -320,6 +322,13 @@ class DatasetBuilder:
                 if uniprot not in uniprot_affinities or affinity < uniprot_affinities[uniprot]:
                     uniprot_affinities[uniprot] = affinity
 
+        if len(uniprot_affinities) > TOP_AFFINITY_HIT_LIMIT:
+            uniprot_affinities = dict(
+                sorted(uniprot_affinities.items(), key=lambda item: (item[1], item[0]))[
+                    :TOP_AFFINITY_HIT_LIMIT
+                ]
+            )
+
         self._uniprot_affinity_cache[cid] = uniprot_affinities
         return uniprot_affinities
 
@@ -327,7 +336,7 @@ class DatasetBuilder:
         affinity_table = self._load_uniprot_affinity_table(cid)
         if uniprot_id not in affinity_table:
             return None
-        ranked = sorted(affinity_table.items(), key=lambda item: item[1])
+        ranked = sorted(affinity_table.items(), key=lambda item: (item[1], item[0]))
         total = len(ranked)
         positions = {target_uniprot: index + 1 for index, (target_uniprot, _) in enumerate(ranked)}
         inverted_rank = positions[uniprot_id]
@@ -356,7 +365,7 @@ class DatasetBuilder:
         choices = [(affinity_table[uniprot], uniprot) for uniprot in target_uniprots if uniprot in affinity_table]
         if not choices:
             return None
-        _, chosen_uniprot = min(choices, key=lambda item: item[0])
+        _, chosen_uniprot = min(choices, key=lambda item: (item[0], item[1]))
         pairwise = self.pairwise_features(cid, chosen_uniprot)
         if pairwise is None:
             return None

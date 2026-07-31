@@ -1,18 +1,18 @@
 {
   "seed": 42,
   "test_size": 0.2,
-  "positive_rows": 2720,
-  "negative_rows": 2720,
-  "total_rows": 5440,
+  "positive_rows": 57,
+  "negative_rows": 50,
+  "total_rows": 107,
   "label_counts": {
-    "0": 2720,
-    "1": 2720
+    "0": 50,
+    "1": 57
   },
   "category_counts": {
-    "enzyme": 3364,
-    "gpcr": 830,
-    "ion_channel": 1074,
-    "nuclear_receptor": 172
+    "enzyme": 63,
+    "gpcr": 18,
+    "ion_channel": 6,
+    "nuclear_receptor": 20
   },
   "feature_sets": {
     "affinity": [

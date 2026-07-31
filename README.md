@@ -59,6 +59,10 @@ The affinity join excludes frequent raw top-hit proteins listed in
 often appear as the best, most negative affinity hit across ligand affinity
 tables.
 
+After UniProt aggregation, each ligand affinity table is further restricted to
+the 20 most negative remaining UniProt affinities. Weaker affinity rows are
+discarded before pairwise features are generated.
+
 ## Coverage
 
 The full Yamanishi gold standard has 5,127 positive ligand-target pairs. The
@@ -68,13 +72,13 @@ features:
 
 ```text
 total Yamanishi positives:                  5,127
-joined positives with complete features:    2,720
+joined positives with complete features:       57
 ```
 
 Current attrition:
 
 ```text
-missing UniProt affinity for target:        1,463
+missing UniProt affinity for target:        4,126
 missing ligand affinity file:                 886
 missing PubChem descriptor row:                24
 missing KEGG drug -> PubChem CID mapping:      21
@@ -116,9 +120,9 @@ That file contains all 5,127 Yamanishi positives, regardless of feature
 availability. Its `feature_status` column explains whether each pair is
 feature-complete or which join is missing.
 
-Balanced negative examples should be generated at training time, because they
-are a sampling policy rather than ground truth. To materialize one deterministic
-balanced sample for inspection or an experiment, use:
+Negative examples should be generated at training time, because they are a
+sampling policy rather than ground truth. To materialize one deterministic
+negative sample for inspection or an experiment, use:
 
 ```bash
 python3 scripts/build_dataset.py \
@@ -130,8 +134,8 @@ Use a different `--seed` to create a different negative sample.
 
 ## Train Baselines
 
-The training script generates balanced negatives at runtime and trains the
-baseline model family:
+The training script generates negatives at runtime and trains the baseline
+model family:
 
 ```bash
 /Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/train_baselines.py
@@ -143,7 +147,7 @@ Outputs:
 - `results/training_manifest.json`
 
 The current baseline run uses `seed=42`, a random stratified 80/20 row split,
-2,720 positive rows, and 2,720 runtime-sampled negatives. It uses
+57 positive rows, and 50 runtime-sampled negatives. It uses
 `data/raw/GoldStandardAffinities.zip` aggregated to UniProt through SIFTS.
 
 The baseline feature sets now compare pairwise-only, pairwise plus PubChem
@@ -152,10 +156,16 @@ feature set. Protein target features are restricted to length, mass, and
 degree. Current best baseline results:
 
 ```text
-Random Forest, pairwise + ligand_all + target_all:     accuracy 0.802, F1 0.801, ROC-AUC 0.876, PR-AUC 0.890
-Gradient Boosting, pairwise + ligand_all + target_all: accuracy 0.733, F1 0.734, ROC-AUC 0.821, PR-AUC 0.828
-KNN, pairwise + ligand_all + target_all:               accuracy 0.720, F1 0.725, ROC-AUC 0.791, PR-AUC 0.774
+SVM, pairwise + ligand_all + target_all:               accuracy 0.727, F1 0.769, ROC-AUC 0.783, PR-AUC 0.846
+SVM, pairwise + ligand_all:                            accuracy 0.727, F1 0.750, ROC-AUC 0.817, PR-AUC 0.875
+Random Forest, pairwise + ligand_all + target_all:     accuracy 0.591, F1 0.609, ROC-AUC 0.717, PR-AUC 0.805
 ```
+
+This top-20 affinity experiment is intentionally aggressive and leaves only 22
+held-out test rows. The affinity-only and pairwise-only comparison against the
+previous full-affinity baseline is in
+`results/top20_affinity_baseline_comparison.csv`; overall, the affinity-derived
+features do not improve reliably after this restriction.
 
 ## Baseline Error Analysis
 
@@ -175,12 +185,10 @@ Outputs:
 - `results/plots/baseline_error_degree_bins.png`
 - `results/plots/baseline_error_rates_by_degree_bin.png`
 
-The current held-out split shows a ligand-degree bias. Positives for ligands
-with only one known Yamanishi target have a high false-negative rate
-(`35/53 = 0.660`), while positives for ligands with more than 30 known targets
-are rarely missed (`7/179 = 0.039`). The opposite happens for sampled
-negatives: high-degree ligands are much more likely to be false positives
-(`23/41 = 0.561` for degree 11-30 and `8/18 = 0.444` for degree >30).
+The current top-20 affinity split has only 22 held-out rows, so its error plots
+are mainly sanity-check artifacts. The broader ligand-degree bias analysis was
+more informative before the top-20 affinity restriction, when the held-out set
+had 1,088 rows.
 
 ## Advanced Clean Sweep
 

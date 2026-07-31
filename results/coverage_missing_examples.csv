@@ -39,6 +39,7 @@ missing_pubchem_descriptor_row,gpcr,D00613,hsa:1812
 missing_pubchem_descriptor_row,gpcr,D00613,hsa:1816
 missing_pubchem_descriptor_row,gpcr,D00715,hsa:1128
 missing_pubchem_descriptor_row,ion_channel,D00633,hsa:170572
+missing_uniprot_affinity_for_target,enzyme,D00002,hsa:10
 missing_uniprot_affinity_for_target,enzyme,D00002,hsa:107
 missing_uniprot_affinity_for_target,enzyme,D00002,hsa:108
 missing_uniprot_affinity_for_target,enzyme,D00002,hsa:109
@@ -47,5 +48,4 @@ missing_uniprot_affinity_for_target,enzyme,D00002,hsa:112
 missing_uniprot_affinity_for_target,enzyme,D00002,hsa:113
 missing_uniprot_affinity_for_target,enzyme,D00002,hsa:114
 missing_uniprot_affinity_for_target,enzyme,D00002,hsa:115
-missing_uniprot_affinity_for_target,enzyme,D00002,hsa:196883
-missing_uniprot_affinity_for_target,enzyme,D00007,hsa:31
+missing_uniprot_affinity_for_target,enzyme,D00002,hsa:124
