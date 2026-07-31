@@ -13,7 +13,6 @@ category.
 from __future__ import annotations
 
 import argparse
-import ast
 import csv
 import gzip
 import random
@@ -70,12 +69,10 @@ LIGAND_FEATURE_COLUMNS = [
     "MW",
 ]
 
-AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
 TARGET_FEATURE_COLUMNS = [
     "length",
     "mass",
     "degree_up",
-    *[f"aa_{aa}" for aa in AMINO_ACIDS],
 ]
 
 
@@ -226,12 +223,6 @@ class DatasetBuilder:
                     "mass": row.get("mass", ""),
                     "degree_up": row.get("degree (UP)", ""),
                 }
-                try:
-                    composition = ast.literal_eval(row.get("composition", "{}"))
-                except (SyntaxError, ValueError):
-                    composition = {}
-                for aa in AMINO_ACIDS:
-                    features[f"aa_{aa}"] = str(composition.get(aa, ""))
                 out[uniprot] = features
         return out
 

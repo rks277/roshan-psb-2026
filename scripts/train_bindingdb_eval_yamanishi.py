@@ -10,7 +10,6 @@ the current balanced Yamanishi classifier table.
 from __future__ import annotations
 
 import argparse
-import ast
 import csv
 import json
 import sys
@@ -58,18 +57,11 @@ def load_target_features(path: Path) -> dict[str, dict[str, str]]:
             uniprot = row["entry"].strip()
             if not uniprot:
                 continue
-            try:
-                composition = ast.literal_eval(row.get("composition", "{}"))
-            except (SyntaxError, ValueError):
-                composition = {}
             features = {
                 "length": row.get("length", ""),
                 "mass": row.get("mass", ""),
                 "degree_up": row.get("degree (UP)", ""),
             }
-            for column in TARGET_FEATURE_COLUMNS:
-                if column.startswith("aa_"):
-                    features[column] = str(composition.get(column.removeprefix("aa_"), ""))
             out[uniprot] = features
     return out
 

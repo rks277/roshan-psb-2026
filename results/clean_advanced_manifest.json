@@ -48,27 +48,7 @@
       "proportion",
       "target_length",
       "target_mass",
-      "target_degree_up",
-      "target_aa_A",
-      "target_aa_C",
-      "target_aa_D",
-      "target_aa_E",
-      "target_aa_F",
-      "target_aa_G",
-      "target_aa_H",
-      "target_aa_I",
-      "target_aa_K",
-      "target_aa_L",
-      "target_aa_M",
-      "target_aa_N",
-      "target_aa_P",
-      "target_aa_Q",
-      "target_aa_R",
-      "target_aa_S",
-      "target_aa_T",
-      "target_aa_V",
-      "target_aa_W",
-      "target_aa_Y"
+      "target_degree_up"
     ],
     "pairwise_plus_pubchem_plus_target": [
       "affinity",
@@ -107,27 +87,7 @@
       "ligand_MW",
       "target_length",
       "target_mass",
-      "target_degree_up",
-      "target_aa_A",
-      "target_aa_C",
-      "target_aa_D",
-      "target_aa_E",
-      "target_aa_F",
-      "target_aa_G",
-      "target_aa_H",
-      "target_aa_I",
-      "target_aa_K",
-      "target_aa_L",
-      "target_aa_M",
-      "target_aa_N",
-      "target_aa_P",
-      "target_aa_Q",
-      "target_aa_R",
-      "target_aa_S",
-      "target_aa_T",
-      "target_aa_V",
-      "target_aa_W",
-      "target_aa_Y"
+      "target_degree_up"
     ]
   },
   "n_iter": 4,
@@ -180,23 +140,23 @@
       "model__class_weight": null
     },
     "pairwise_plus_target::Linear SGD tuned": {
-      "model__alpha": 0.007329939418114051,
+      "model__alpha": 0.0015701864044243652,
       "model__class_weight": null,
-      "model__penalty": "l2"
+      "model__penalty": "elasticnet"
     },
     "pairwise_plus_target::Random Forest tuned": {
       "model__class_weight": null,
-      "model__max_depth": 8,
+      "model__max_depth": 20,
       "model__max_features": null,
-      "model__min_samples_leaf": 11,
-      "model__n_estimators": 171
+      "model__min_samples_leaf": 2,
+      "model__n_estimators": 443
     },
     "pairwise_plus_target::Extra Trees tuned": {
       "model__class_weight": null,
-      "model__max_depth": 8,
-      "model__max_features": null,
-      "model__min_samples_leaf": 11,
-      "model__n_estimators": 171
+      "model__max_depth": 12,
+      "model__max_features": "log2",
+      "model__min_samples_leaf": 3,
+      "model__n_estimators": 314
     },
     "pairwise_plus_target::Gradient Boosting tuned": {
       "model__learning_rate": 0.09342715278475545,
@@ -213,11 +173,11 @@
       "model__min_samples_leaf": 28
     },
     "pairwise_plus_target::AdaBoost tuned": {
-      "model__learning_rate": 0.6787491292803867,
-      "model__n_estimators": 264
+      "model__learning_rate": 0.5718101782710437,
+      "model__n_estimators": 398
     },
     "pairwise_plus_pubchem_plus_target::Logistic L2 tuned": {
-      "model__C": 11.983169683940732,
+      "model__C": 8.926655057071823,
       "model__class_weight": null
     },
     "pairwise_plus_pubchem_plus_target::Linear SGD tuned": {
@@ -247,11 +207,11 @@
       "model__subsample": 0.5753852105621952
     },
     "pairwise_plus_pubchem_plus_target::Hist Gradient Boosting tuned": {
-      "model__l2_regularization": 0.749080237694725,
-      "model__learning_rate": 0.24767857660247905,
-      "model__max_iter": 181,
-      "model__max_leaf_nodes": 14,
-      "model__min_samples_leaf": 25
+      "model__l2_regularization": 0.6674172222780437,
+      "model__learning_rate": 0.0457167044804852,
+      "model__max_iter": 205,
+      "model__max_leaf_nodes": 28,
+      "model__min_samples_leaf": 57
     },
     "pairwise_plus_pubchem_plus_target::AdaBoost tuned": {
       "model__learning_rate": 0.5718101782710437,
