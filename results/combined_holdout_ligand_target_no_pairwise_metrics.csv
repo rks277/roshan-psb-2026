@@ -1,0 +1,5 @@
+Feature Set,Classifier,Train Rows,Test Rows,Features,Accuracy,Precision,Recall,F1 Score,ROC AUC,PR AUC,False Positive Rate,False Negative Rate
+ligand_all + target_all (no pairwise),Logistic Regression,7688,200,33,0.625,0.6436781609195402,0.56,0.5989304812834224,0.6539999999999999,0.6432413948597071,0.31,0.44
+ligand_all + target_all (no pairwise),Random Forest,7688,200,33,0.745,0.7247706422018348,0.79,0.7559808612440191,0.8216,0.8171564609241418,0.3,0.21
+ligand_all + target_all (no pairwise),Extra Trees,7688,200,33,0.705,0.6915887850467289,0.74,0.714975845410628,0.7665500000000001,0.7642802827360728,0.33,0.26
+ligand_all + target_all (no pairwise),Hist Gradient Boosting,7688,200,33,0.77,0.7647058823529411,0.78,0.7722772277227723,0.82885,0.8086264945051829,0.24,0.22
