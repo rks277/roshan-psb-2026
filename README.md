@@ -157,6 +157,31 @@ Gradient Boosting, pairwise + ligand_all + target_all: accuracy 0.733, F1 0.734,
 KNN, pairwise + ligand_all + target_all:               accuracy 0.720, F1 0.725, ROC-AUC 0.791, PR-AUC 0.774
 ```
 
+## Baseline Error Analysis
+
+False-positive and false-negative analysis for the Random Forest baseline can
+be regenerated with:
+
+```bash
+MPLCONFIGDIR=/private/tmp /Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/analyze_baseline_errors.py
+```
+
+Outputs:
+
+- `results/baseline_error_predictions.csv`
+- `results/baseline_error_degree_summary.csv`
+- `results/baseline_error_rates_by_degree_bin.csv`
+- `results/baseline_error_ligands.csv`
+- `results/plots/baseline_error_degree_bins.png`
+- `results/plots/baseline_error_rates_by_degree_bin.png`
+
+The current held-out split shows a ligand-degree bias. Positives for ligands
+with only one known Yamanishi target have a high false-negative rate
+(`35/53 = 0.660`), while positives for ligands with more than 30 known targets
+are rarely missed (`7/179 = 0.039`). The opposite happens for sampled
+negatives: high-degree ligands are much more likely to be false positives
+(`23/41 = 0.561` for degree 11-30 and `8/18 = 0.444` for degree >30).
+
 ## Advanced Clean Sweep
 
 For a stricter sweep using the agreed feature sources:

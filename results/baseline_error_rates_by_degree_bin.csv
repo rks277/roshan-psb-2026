@@ -1,0 +1,13 @@
+degree_column,degree_bin,negative_rows,false_positives,false_positive_rate,positive_rows,false_negatives,false_negative_rate
+ligand_yamanishi_degree,1,240,25,0.10416666666666667,53,35,0.660377358490566
+ligand_yamanishi_degree,2-3,162,30,0.18518518518518517,70,33,0.4714285714285714
+ligand_yamanishi_degree,4-10,83,17,0.20481927710843373,84,18,0.21428571428571427
+ligand_yamanishi_degree,11-30,41,23,0.5609756097560976,158,18,0.11392405063291139
+ligand_yamanishi_degree,>30,18,8,0.4444444444444444,179,7,0.03910614525139665
+ligand_yamanishi_degree,missing,0,0,,0,0,
+target_yamanishi_degree,1,165,29,0.17575757575757575,22,11,0.5
+target_yamanishi_degree,2-3,161,20,0.12422360248447205,43,8,0.18604651162790697
+target_yamanishi_degree,4-10,125,25,0.2,178,31,0.17415730337078653
+target_yamanishi_degree,11-30,86,28,0.32558139534883723,245,47,0.19183673469387755
+target_yamanishi_degree,>30,7,1,0.14285714285714285,56,14,0.25
+target_yamanishi_degree,missing,0,0,,0,0,

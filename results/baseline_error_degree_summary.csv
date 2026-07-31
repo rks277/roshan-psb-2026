@@ -1,0 +1,9 @@
+outcome,rows,column,mean,median,p25,p75,min,max
+TN,441,ligand_yamanishi_degree,3.875283446712018,2.0,1.0,3.0,1.0,80.0
+FP,103,ligand_yamanishi_degree,9.757281553398059,3.0,2.0,13.0,1.0,53.0
+FN,111,ligand_yamanishi_degree,8.027027027027026,2.0,1.0,9.0,1.0,80.0
+TP,433,ligand_yamanishi_degree,28.854503464203233,19.0,9.0,45.0,1.0,121.0
+TN,441,target_yamanishi_degree,5.585034013605442,2.0,1.0,8.0,1.0,61.0
+FP,103,target_yamanishi_degree,7.815533980582524,4.0,1.0,11.0,1.0,31.0
+FN,111,target_yamanishi_degree,14.558558558558559,12.0,6.0,20.0,1.0,61.0
+TP,433,target_yamanishi_degree,15.801385681293302,13.0,8.0,20.0,1.0,61.0
