@@ -1,0 +1,61 @@
+{
+  "seed": 42,
+  "dataset": "bindingdb_only",
+  "rows": 2446,
+  "train_rows": 1956,
+  "test_rows": 490,
+  "test_size": 0.2,
+  "label_counts": {
+    "1": 1223,
+    "0": 1223
+  },
+  "train_label_counts": {
+    "0": 978,
+    "1": 978
+  },
+  "test_label_counts": {
+    "0": 245,
+    "1": 245
+  },
+  "feature_set": [
+    "ligand_MolecularWeight",
+    "ligand_MonoisotopicMass",
+    "ligand_TPSA",
+    "ligand_Complexity",
+    "ligand_Charge",
+    "ligand_HBondDonorCount",
+    "ligand_HBondAcceptorCount",
+    "ligand_RotatableBondCount",
+    "ligand_HeavyAtomCount",
+    "ligand_IsotopeAtomCount",
+    "ligand_AtomStereoCount",
+    "ligand_DefinedAtomStereoCount",
+    "ligand_UndefinedAtomStereoCount",
+    "ligand_BondStereoCount",
+    "ligand_DefinedBondStereoCount",
+    "ligand_UndefinedBondStereoCount",
+    "ligand_CovalentUnitCount",
+    "ligand_Volume3D",
+    "ligand_FeatureCount3D",
+    "ligand_FeatureAcceptorCount3D",
+    "ligand_FeatureDonorCount3D",
+    "ligand_FeatureAnionCount3D",
+    "ligand_FeatureCationCount3D",
+    "ligand_FeatureRingCount3D",
+    "ligand_FeatureHydrophobeCount3D",
+    "ligand_ConformerModelRMSD3D",
+    "ligand_EffectiveRotorCount3D",
+    "ligand_ConformerCount3D",
+    "ligand_XLogP",
+    "ligand_MW",
+    "target_length",
+    "target_mass",
+    "target_degree_up"
+  ],
+  "excluded_features": [
+    "affinity",
+    "rank",
+    "inverted_rank",
+    "proportion"
+  ]
+}
