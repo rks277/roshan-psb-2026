@@ -28,13 +28,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_dataset import DatasetBuilder  # noqa: E402
 from build_no_affinity_dataset import (  # noqa: E402
     load_maccs_features,
+    load_morgan_features,
     load_target_sequence_features,
     choose_target_uniprot,
 )
 from train_no_affinity_models import FEATURE_SETS, numeric_matrix  # noqa: E402
 
 
-MODEL_FEATURE_SET = "pubchem_plus_maccs_plus_target_rich"
+MODEL_FEATURE_SET = "pubchem_plus_maccs_plus_morgan_plus_target_rich"
 
 
 def make_models(seed: int) -> dict[str, Pipeline]:
@@ -75,6 +76,7 @@ def evaluate(y_true: np.ndarray, y_pred: np.ndarray, y_score: np.ndarray) -> dic
 
 def coverage_status(builder: DatasetBuilder, data_dir: Path) -> list[dict[str, object]]:
     maccs_features = load_maccs_features(data_dir)
+    morgan_features = load_morgan_features(data_dir)
     target_sequence_features = load_target_sequence_features(data_dir)
     status_by_category: dict[str, Counter[str]] = defaultdict(Counter)
 
@@ -92,6 +94,8 @@ def coverage_status(builder: DatasetBuilder, data_dir: Path) -> list[dict[str, o
             status = "missing_target_sequence_features"
         elif cid not in maccs_features:
             status = "missing_maccs_fingerprint"
+        elif morgan_features and cid not in morgan_features:
+            status = "missing_morgan_fingerprint"
         else:
             status = "joined"
         status_by_category[key.category][status] += 1

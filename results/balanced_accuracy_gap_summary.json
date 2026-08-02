@@ -1,9 +1,9 @@
 {
   "dataset": "data/processed/yamanishi_no_affinity_classifier_dataset.csv",
-  "feature_set": "pubchem_plus_maccs_plus_target_rich",
-  "positive_rows": 3635,
-  "negative_rows": 3635,
+  "feature_set": "pubchem_plus_maccs_plus_morgan_plus_target_rich",
+  "positive_rows": 5065,
+  "negative_rows": 5065,
   "feature_conflict_rows": 2,
-  "best_holdout_accuracy": 0.8877551020408163,
-  "best_combined_holdout_accuracy": 0.8418156808803301
+  "best_holdout_accuracy": 0.8878343399482312,
+  "best_combined_holdout_accuracy": 0.8731490621915103
 }

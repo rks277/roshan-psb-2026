@@ -1,3 +1,3 @@
 label,category,kegg_drug,pubchem_cid,ligand_title,kegg_target,uniprot_id
-1,ion_channel,D02272,64640,Quinidine sulfate hydrate,hsa:6326,Q99250
-0,ion_channel,D02262,61367,Quinine sulfate (USP),hsa:6326,Q99250
+1,ion_channel,D02272,64640,Quinidine sulfate hydrate,hsa:27133,Q8NCM2
+0,ion_channel,D02262,61367,Quinine sulfate (USP),hsa:27133,Q8NCM2

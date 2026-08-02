@@ -1,0 +1,20 @@
+{
+  "dataset": "data/processed/yamanishi_no_affinity_classifier_dataset.csv",
+  "seed": 42,
+  "test_size": 0.2,
+  "positive_rows": 5065,
+  "negative_rows": 5065,
+  "similarity_features": [
+    "drug_sim_to_training_ligands_for_target_max",
+    "drug_sim_to_training_ligands_for_target_mean",
+    "protein_sim_to_training_targets_for_drug_max",
+    "protein_sim_to_training_targets_for_drug_mean",
+    "drug_sim_to_category_training_positives_max",
+    "drug_sim_to_category_training_positives_mean",
+    "protein_sim_to_category_training_positives_max",
+    "protein_sim_to_category_training_positives_mean",
+    "training_positive_ligands_for_target",
+    "training_positive_targets_for_drug"
+  ],
+  "molecular_feature_count": 1654
+}

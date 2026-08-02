@@ -14,26 +14,40 @@ from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold, train_t
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_dataset import LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
-from build_no_affinity_dataset import MACCS_FEATURE_COLUMNS, TARGET_SEQUENCE_FEATURE_COLUMNS  # noqa: E402
+from build_no_affinity_dataset import (  # noqa: E402
+    MACCS_FEATURE_COLUMNS,
+    MORGAN_FEATURE_COLUMNS,
+    TARGET_SEQUENCE_FEATURE_COLUMNS,
+)
 from train_clean_advanced import candidate_models, evaluate, scores  # noqa: E402
 
 LIGAND_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
 MACCS_FEATURES = [f"ligand_{column}" for column in MACCS_FEATURE_COLUMNS]
+MORGAN_FEATURES = [f"ligand_{column}" for column in MORGAN_FEATURE_COLUMNS]
 TARGET_BASIC_FEATURES = [f"target_{column}" for column in TARGET_FEATURE_COLUMNS]
 TARGET_SEQUENCE_FEATURES = [f"target_{column}" for column in TARGET_SEQUENCE_FEATURE_COLUMNS]
 TARGET_RICH_FEATURES = TARGET_BASIC_FEATURES + TARGET_SEQUENCE_FEATURES
 FEATURE_SETS = {
     "pubchem_only": LIGAND_FEATURES,
     "maccs_only": MACCS_FEATURES,
+    "morgan_only": MORGAN_FEATURES,
     "pubchem_plus_maccs": LIGAND_FEATURES + MACCS_FEATURES,
+    "pubchem_plus_morgan": LIGAND_FEATURES + MORGAN_FEATURES,
+    "maccs_plus_morgan": MACCS_FEATURES + MORGAN_FEATURES,
     "target_basic_only": TARGET_BASIC_FEATURES,
     "target_rich_only": TARGET_RICH_FEATURES,
     "pubchem_plus_target": LIGAND_FEATURES + TARGET_BASIC_FEATURES,
     "maccs_plus_target": MACCS_FEATURES + TARGET_BASIC_FEATURES,
+    "morgan_plus_target": MORGAN_FEATURES + TARGET_BASIC_FEATURES,
     "pubchem_plus_maccs_plus_target": LIGAND_FEATURES + MACCS_FEATURES + TARGET_BASIC_FEATURES,
+    "pubchem_plus_morgan_plus_target": LIGAND_FEATURES + MORGAN_FEATURES + TARGET_BASIC_FEATURES,
     "pubchem_plus_target_rich": LIGAND_FEATURES + TARGET_RICH_FEATURES,
     "maccs_plus_target_rich": MACCS_FEATURES + TARGET_RICH_FEATURES,
+    "morgan_plus_target_rich": MORGAN_FEATURES + TARGET_RICH_FEATURES,
     "pubchem_plus_maccs_plus_target_rich": LIGAND_FEATURES + MACCS_FEATURES + TARGET_RICH_FEATURES,
+    "pubchem_plus_maccs_plus_morgan_plus_target_rich": (
+        LIGAND_FEATURES + MACCS_FEATURES + MORGAN_FEATURES + TARGET_RICH_FEATURES
+    ),
 }
 
 

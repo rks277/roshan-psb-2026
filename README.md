@@ -206,41 +206,72 @@ Outputs:
 
 - `data/processed/yamanishi_no_affinity_positive_rows.csv`
 - `data/processed/yamanishi_no_affinity_classifier_dataset.csv`
+- `data/processed/yamanishi_target_features_full.tsv`
+- `data/processed/morgan_fingerprints.csv`
 - `results/no_affinity_coverage_summary.csv`
+- `results/full_target_features_missing_uniprots.csv`
 - `results/no_affinity_model_metrics.csv`
 - `results/no_affinity_tuned_model_metrics.csv`
 - `results/no_affinity_maccs_tuned_model_metrics.csv`
 - `results/no_affinity_rich_target_model_metrics.csv`
 - `results/no_affinity_rich_target_tuned_model_metrics.csv`
+- `results/expanded_no_affinity_model_metrics.csv`
+- `results/similarity_feature_model_metrics.csv`
+
+The expanded no-affinity table can be rebuilt with:
+
+```bash
+python3 scripts/build_full_target_features.py
+python3 scripts/build_morgan_fingerprints.py
+python3 scripts/build_no_affinity_dataset.py
+python3 scripts/train_no_affinity_models.py \
+  --n-iter 0 \
+  --feature-sets morgan_only pubchem_plus_morgan morgan_plus_target_rich pubchem_plus_maccs_plus_morgan_plus_target_rich \
+  --classifiers "Extra Trees tuned" "Hist Gradient Boosting tuned" \
+  --metrics-output results/expanded_no_affinity_model_metrics.csv \
+  --manifest-output results/expanded_no_affinity_model_manifest.json
+python3 scripts/train_similarity_feature_models.py
+```
 
 Coverage improves substantially without the affinity requirement:
 
 ```text
 total Yamanishi positives:                  5,127
-joined no-affinity positives:               3,635
-sampled no-affinity negatives:              3,635
-missing target features:                    1,430
+joined no-affinity positives:               5,065
+sampled no-affinity negatives:              5,065
+missing PubChem descriptor rows:            24
+missing KEGG drug -> PubChem CID mappings:  21
+missing KEGG target -> UniProt mappings:    17
+missing target features:                    0
 ```
 
-The rich target feature sets add 431 sequence-derived columns from
-`features.tsv`: amino-acid composition, residue-class fractions, and normalized
-dipeptide frequencies.
+The full target feature table fills missing mapped Yamanishi UniProt accessions
+from UniProt sequence records. Morgan/ECFP fingerprints are generated from the
+local canonical SMILES in `maccs_fingerprints (2).csv`.
 
-Best no-affinity results:
+Best expanded no-affinity results:
 
 ```text
-Extra Trees, PubChem + MACCS + rich target: accuracy 0.838, F1 0.835, ROC-AUC 0.897, PR-AUC 0.916
-Hist Gradient Boosting tuned, PubChem + MACCS + rich target: accuracy 0.838, F1 0.838, ROC-AUC 0.907, PR-AUC 0.910
-Random Forest tuned, MACCS + basic target:  accuracy 0.827, F1 0.825, ROC-AUC 0.896, PR-AUC 0.902
-Random Forest tuned, PubChem + basic target: accuracy 0.811, F1 0.808, ROC-AUC 0.887, PR-AUC 0.895
+Extra Trees, PubChem + MACCS + Morgan + rich target: accuracy 0.875, F1 0.874, ROC-AUC 0.938, PR-AUC 0.946
+Extra Trees, Morgan + rich target:                   accuracy 0.858, F1 0.858, ROC-AUC 0.929, PR-AUC 0.936
+Hist Gradient Boosting, PubChem + MACCS + Morgan + rich target: accuracy 0.845, F1 0.849, ROC-AUC 0.918, PR-AUC 0.916
 ```
 
-This is comparable to, and slightly stronger than, the earlier affinity-based
-model runs. It supports the interpretation that the affinity features are not
-driving performance; ligand fingerprints/descriptors and target features alone
-recover most of the signal when more Yamanishi pairs are retained. Adding
-sequence-derived target features improves PR-AUC to `0.916` and tuned ROC-AUC
-to `0.907`, which is much closer to the literature-level AUC numbers.
+This is a clear improvement over the earlier `0.838` balanced accuracy baseline.
+It still does not fully reach the strongest 0.90+ balanced literature accuracy
+claims, but the ranking metrics are now in that range.
+
+The similarity-feature script adds train-fold-only features analogous to
+drug-drug and protein-protein similarity evidence:
+
+```text
+Extra Trees, molecular + similarity: accuracy 0.813, ROC-AUC 0.917, PR-AUC 0.935
+Extra Trees, similarity only:        accuracy 0.506, ROC-AUC 0.841, PR-AUC 0.840
+```
+
+These similarity features are informative for ranking but are poorly calibrated
+at the default `0.5` decision threshold, so they do not improve raw balanced
+accuracy in the current classifier setup.
 
 ### Balanced Accuracy Gap Audit
 
@@ -261,9 +292,9 @@ Outputs:
 Current findings:
 
 ```text
-feature-complete positives:           3,635 / 5,127
-combined 80/20 best accuracy:         0.842
-combined 5-fold Extra Trees accuracy: 0.834 +/- 0.011
+feature-complete positives:           5,065 / 5,127
+combined 80/20 best accuracy:         0.873
+combined 5-fold Extra Trees accuracy: 0.865 +/- 0.005
 best per-category accuracy:           0.888 on enzyme
 conflicting exact feature rows:        2
 ```
@@ -271,10 +302,9 @@ conflicting exact feature rows:        2
 The main gap versus 0.90+ balanced literature numbers appears to be protocol and
 feature representation, not a simple label-join bug. Older Yamanishi papers
 often train/evaluate per target class and use richer drug-drug/protein-protein
-similarity or graph features. This repo's current no-affinity model uses
-standalone PubChem descriptors, MACCS fingerprints, and sequence-derived target
-features, and it drops 1,492 positives because complete local feature coverage
-is unavailable.
+similarity or graph features. After restoring target feature coverage and adding
+Morgan fingerprints, the remaining gap is much smaller and is probably model
+class/protocol rather than missing target data.
 
 ### Negative Ratio Accuracy
 

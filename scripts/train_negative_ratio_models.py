@@ -31,13 +31,19 @@ from build_dataset import DatasetBuilder  # noqa: E402
 from build_no_affinity_dataset import (  # noqa: E402
     build_positive_rows,
     load_maccs_features,
+    load_morgan_features,
     load_target_sequence_features,
     make_no_affinity_row,
 )
 from train_no_affinity_models import FEATURE_SETS, numeric_matrix  # noqa: E402
 
 
-def all_valid_negative_rows(builder, maccs_features, target_sequence_features) -> dict[str, list[dict[str, str]]]:
+def all_valid_negative_rows(
+    builder,
+    maccs_features,
+    morgan_features,
+    target_sequence_features,
+) -> dict[str, list[tuple[str, str]]]:
     labels_by_category = defaultdict(set)
     drugs_by_category = defaultdict(set)
     targets_by_category = defaultdict(set)
@@ -52,17 +58,7 @@ def all_valid_negative_rows(builder, maccs_features, target_sequence_features) -
             for target in sorted(targets_by_category[category]):
                 if (drug, target) in labels_by_category[category]:
                     continue
-                row = make_no_affinity_row(
-                    builder,
-                    maccs_features,
-                    target_sequence_features,
-                    category,
-                    drug,
-                    target,
-                    0,
-                )
-                if row is not None:
-                    out[category].append(row)
+                out[category].append((drug, target))
     return out
 
 
@@ -118,20 +114,43 @@ def main() -> None:
 
     builder = DatasetBuilder(args.data_dir, seed=args.seed)
     maccs_features = load_maccs_features(args.data_dir)
+    morgan_features = load_morgan_features(args.data_dir)
     target_sequence_features = load_target_sequence_features(args.data_dir)
-    positives = build_positive_rows(builder, maccs_features, target_sequence_features)
+    positives = build_positive_rows(builder, maccs_features, morgan_features, target_sequence_features)
     positives_by_category = category_groups(positives)
-    negatives_by_category = all_valid_negative_rows(builder, maccs_features, target_sequence_features)
+    negatives_by_category = all_valid_negative_rows(
+        builder,
+        maccs_features,
+        morgan_features,
+        target_sequence_features,
+    )
 
     rng = random.Random(args.seed)
-    columns = FEATURE_SETS["pubchem_plus_maccs_plus_target_rich"]
+    columns = FEATURE_SETS["pubchem_plus_maccs_plus_morgan_plus_target_rich"]
     results = []
     for ratio in args.ratios:
         negatives = []
         for category, category_positives in positives_by_category.items():
             pool = negatives_by_category[category][:]
             rng.shuffle(pool)
-            negatives.extend(pool[: min(len(pool), len(category_positives) * ratio)])
+            category_negative_count = 0
+            target_negative_count = len(category_positives) * ratio
+            for drug, target in pool:
+                row = make_no_affinity_row(
+                    builder,
+                    maccs_features,
+                    morgan_features,
+                    target_sequence_features,
+                    category,
+                    drug,
+                    target,
+                    0,
+                )
+                if row is not None:
+                    negatives.append(row)
+                    category_negative_count += 1
+                if category_negative_count >= target_negative_count:
+                    break
 
         rows = positives + negatives
         y = np.asarray([int(row["label"]) for row in rows], dtype=int)

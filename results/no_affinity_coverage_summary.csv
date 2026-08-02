@@ -1,7 +1,6 @@
 step_or_reason,positive_pairs
 total_yamanishi_positive_pairs,5127
-joined,3635
-missing_target_features,1430
+joined,5065
 missing_pubchem_descriptor_row,24
 missing_kegg_drug_to_pubchem_cid,21
 missing_kegg_target_to_uniprot,17

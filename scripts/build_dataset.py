@@ -212,7 +212,9 @@ class DatasetBuilder:
             return {row["CID"].strip(): row for row in csv.DictReader(handle)}
 
     def _load_target_features(self) -> dict[str, dict[str, str]]:
-        path = self.data_dir / "features.tsv"
+        path = self.data_dir.parent / "processed" / "yamanishi_target_features_full.tsv"
+        if not path.exists():
+            path = self.data_dir / "features.tsv"
         if not path.exists():
             return {}
         out = {}
