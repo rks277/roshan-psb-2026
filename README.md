@@ -188,6 +188,18 @@ python3 scripts/train_no_affinity_models.py \
   --classifiers "Random Forest tuned" "Hist Gradient Boosting tuned" \
   --metrics-output results/no_affinity_maccs_tuned_model_metrics.csv \
   --manifest-output results/no_affinity_maccs_tuned_model_manifest.json
+python3 scripts/train_no_affinity_models.py \
+  --n-iter 0 \
+  --feature-sets target_basic_only target_rich_only maccs_plus_target maccs_plus_target_rich pubchem_plus_maccs_plus_target pubchem_plus_maccs_plus_target_rich \
+  --classifiers "Random Forest tuned" "Hist Gradient Boosting tuned" "Extra Trees tuned" \
+  --metrics-output results/no_affinity_rich_target_model_metrics.csv \
+  --manifest-output results/no_affinity_rich_target_model_manifest.json
+python3 scripts/train_no_affinity_models.py \
+  --n-iter 6 \
+  --feature-sets maccs_plus_target_rich pubchem_plus_maccs_plus_target_rich \
+  --classifiers "Extra Trees tuned" "Hist Gradient Boosting tuned" \
+  --metrics-output results/no_affinity_rich_target_tuned_model_metrics.csv \
+  --manifest-output results/no_affinity_rich_target_tuned_model_manifest.json
 ```
 
 Outputs:
@@ -198,6 +210,8 @@ Outputs:
 - `results/no_affinity_model_metrics.csv`
 - `results/no_affinity_tuned_model_metrics.csv`
 - `results/no_affinity_maccs_tuned_model_metrics.csv`
+- `results/no_affinity_rich_target_model_metrics.csv`
+- `results/no_affinity_rich_target_tuned_model_metrics.csv`
 
 Coverage improves substantially without the affinity requirement:
 
@@ -208,21 +222,25 @@ sampled no-affinity negatives:              3,635
 missing target features:                    1,430
 ```
 
-Best tuned no-affinity results:
+The rich target feature sets add 431 sequence-derived columns from
+`features.tsv`: amino-acid composition, residue-class fractions, and normalized
+dipeptide frequencies.
+
+Best no-affinity results:
 
 ```text
-Random Forest, MACCS + target:              accuracy 0.827, F1 0.825, ROC-AUC 0.896, PR-AUC 0.902
-Hist Gradient Boosting, MACCS + target:     accuracy 0.827, F1 0.825, ROC-AUC 0.895, PR-AUC 0.895
-Random Forest, PubChem + target:            accuracy 0.811, F1 0.808, ROC-AUC 0.887, PR-AUC 0.895
-Hist Gradient Boosting, PubChem + target:   accuracy 0.818, F1 0.819, ROC-AUC 0.888, PR-AUC 0.886
+Extra Trees, PubChem + MACCS + rich target: accuracy 0.838, F1 0.835, ROC-AUC 0.897, PR-AUC 0.916
+Hist Gradient Boosting tuned, PubChem + MACCS + rich target: accuracy 0.838, F1 0.838, ROC-AUC 0.907, PR-AUC 0.910
+Random Forest tuned, MACCS + basic target:  accuracy 0.827, F1 0.825, ROC-AUC 0.896, PR-AUC 0.902
+Random Forest tuned, PubChem + basic target: accuracy 0.811, F1 0.808, ROC-AUC 0.887, PR-AUC 0.895
 ```
 
 This is comparable to, and slightly stronger than, the earlier affinity-based
 model runs. It supports the interpretation that the affinity features are not
 driving performance; ligand fingerprints/descriptors and target features alone
-recover most of the signal when more Yamanishi pairs are retained. In the
-current tuned run, MACCS fingerprints plus target features outperform the
-PubChem numeric descriptors plus target features.
+recover most of the signal when more Yamanishi pairs are retained. Adding
+sequence-derived target features improves PR-AUC to `0.916` and tuned ROC-AUC
+to `0.907`, which is much closer to the literature-level AUC numbers.
 
 ## Baseline Error Analysis
 

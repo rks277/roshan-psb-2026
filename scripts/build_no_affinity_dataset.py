@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import random
 import sys
@@ -14,6 +15,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
 
 MACCS_FEATURE_COLUMNS = [f"MACCS_{index}" for index in range(166)]
+AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
+DIPEPTIDES = [left + right for left in AMINO_ACIDS for right in AMINO_ACIDS]
+TARGET_AA_FEATURE_COLUMNS = [f"aa_{aa}" for aa in AMINO_ACIDS]
+TARGET_DIPEPTIDE_FEATURE_COLUMNS = [f"dipeptide_{pair}" for pair in DIPEPTIDES]
+TARGET_GROUP_FEATURES = {
+    "hydrophobic": set("AILMFWYV"),
+    "polar": set("STNQCY"),
+    "positive": set("KRH"),
+    "negative": set("DE"),
+    "charged": set("KRHDE"),
+    "aromatic": set("FWYH"),
+    "tiny": set("ACGST"),
+    "small": set("ACDGNPSTV"),
+    "proline": set("P"),
+    "glycine": set("G"),
+    "cysteine": set("C"),
+}
+TARGET_GROUP_FEATURE_COLUMNS = [f"group_{name}" for name in TARGET_GROUP_FEATURES]
+TARGET_SEQUENCE_FEATURE_COLUMNS = (
+    TARGET_AA_FEATURE_COLUMNS
+    + TARGET_GROUP_FEATURE_COLUMNS
+    + TARGET_DIPEPTIDE_FEATURE_COLUMNS
+)
 
 
 def load_maccs_features(data_dir: Path) -> dict[str, dict[str, str]]:
@@ -28,6 +52,51 @@ def load_maccs_features(data_dir: Path) -> dict[str, dict[str, str]]:
         }
 
 
+def sequence_fraction(sequence: str, residues: set[str]) -> float:
+    sequence = "".join(aa for aa in sequence.upper() if aa in AMINO_ACIDS)
+    if not sequence:
+        return 0.0
+    return sum(1 for aa in sequence if aa in residues) / len(sequence)
+
+
+def dipeptide_features(sequence: str) -> dict[str, str]:
+    sequence = "".join(aa for aa in sequence.upper() if aa in AMINO_ACIDS)
+    total = max(len(sequence) - 1, 0)
+    counts = dict.fromkeys(DIPEPTIDES, 0)
+    for index in range(total):
+        pair = sequence[index : index + 2]
+        if pair in counts:
+            counts[pair] += 1
+    if total == 0:
+        return {f"dipeptide_{pair}": "0" for pair in DIPEPTIDES}
+    return {f"dipeptide_{pair}": str(count / total) for pair, count in counts.items()}
+
+
+def load_target_sequence_features(data_dir: Path) -> dict[str, dict[str, str]]:
+    path = data_dir / "features.tsv"
+    if not path.exists():
+        return {}
+    out = {}
+    with path.open(newline="") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            uniprot = row.get("entry", "").strip()
+            sequence = row.get("sequence", "")
+            if not uniprot or not sequence:
+                continue
+            features: dict[str, str] = {}
+            try:
+                composition = ast.literal_eval(row.get("composition", "{}"))
+            except (SyntaxError, ValueError):
+                composition = {}
+            for aa in AMINO_ACIDS:
+                features[f"aa_{aa}"] = str(float(composition.get(aa, 0.0)))
+            for name, residues in TARGET_GROUP_FEATURES.items():
+                features[f"group_{name}"] = str(sequence_fraction(sequence, residues))
+            features.update(dipeptide_features(sequence))
+            out[uniprot] = features
+    return out
+
+
 def choose_target_uniprot(builder: DatasetBuilder, kegg_target: str) -> str | None:
     for uniprot in builder.hsa_to_uniprot.get(kegg_target, []):
         if uniprot in builder.target_features:
@@ -38,6 +107,7 @@ def choose_target_uniprot(builder: DatasetBuilder, kegg_target: str) -> str | No
 def make_no_affinity_row(
     builder: DatasetBuilder,
     maccs_features: dict[str, dict[str, str]],
+    target_sequence_features: dict[str, dict[str, str]],
     category: str,
     kegg_drug: str,
     kegg_target: str,
@@ -73,18 +143,23 @@ def make_no_affinity_row(
     target_features = builder.target_features.get(uniprot, {})
     for column in TARGET_FEATURE_COLUMNS:
         row[f"target_{column}"] = target_features.get(column, "")
+    sequence_features = target_sequence_features.get(uniprot, {})
+    for column in TARGET_SEQUENCE_FEATURE_COLUMNS:
+        row[f"target_{column}"] = sequence_features.get(column, "")
     return row
 
 
 def build_positive_rows(
     builder: DatasetBuilder,
     maccs_features: dict[str, dict[str, str]],
+    target_sequence_features: dict[str, dict[str, str]],
 ) -> list[dict[str, str]]:
     rows = []
     for key in sorted(builder.labels, key=lambda item: (item.category, item.kegg_drug, item.kegg_target)):
         row = make_no_affinity_row(
             builder,
             maccs_features,
+            target_sequence_features,
             key.category,
             key.kegg_drug,
             key.kegg_target,
@@ -98,6 +173,7 @@ def build_positive_rows(
 def positive_status_counts(
     builder: DatasetBuilder,
     maccs_features: dict[str, dict[str, str]],
+    target_sequence_features: dict[str, dict[str, str]],
 ) -> Counter[str]:
     counts: Counter[str] = Counter()
     for key in builder.labels:
@@ -110,6 +186,8 @@ def positive_status_counts(
             counts["missing_kegg_target_to_uniprot"] += 1
         elif choose_target_uniprot(builder, key.kegg_target) is None:
             counts["missing_target_features"] += 1
+        elif choose_target_uniprot(builder, key.kegg_target) not in target_sequence_features:
+            counts["missing_target_sequence_features"] += 1
         elif cid not in maccs_features:
             counts["missing_maccs_fingerprint"] += 1
         else:
@@ -127,6 +205,7 @@ def category_counts(rows: list[dict[str, str]]) -> dict[str, int]:
 def build_negative_rows(
     builder: DatasetBuilder,
     maccs_features: dict[str, dict[str, str]],
+    target_sequence_features: dict[str, dict[str, str]],
     count_by_category: dict[str, int],
     seed: int,
 ) -> list[dict[str, str]]:
@@ -146,7 +225,15 @@ def build_negative_rows(
             for target in sorted(targets_by_category[category]):
                 if (drug, target) in labels_by_category[category]:
                     continue
-                row = make_no_affinity_row(builder, maccs_features, category, drug, target, 0)
+                row = make_no_affinity_row(
+                    builder,
+                    maccs_features,
+                    target_sequence_features,
+                    category,
+                    drug,
+                    target,
+                    0,
+                )
                 if row is not None:
                     candidates.append(row)
         rng.shuffle(candidates)
@@ -187,9 +274,16 @@ def main() -> None:
 
     builder = DatasetBuilder(args.data_dir, seed=args.seed)
     maccs_features = load_maccs_features(args.data_dir)
-    positives = build_positive_rows(builder, maccs_features)
-    negatives = build_negative_rows(builder, maccs_features, category_counts(positives), args.seed)
-    status_counts = positive_status_counts(builder, maccs_features)
+    target_sequence_features = load_target_sequence_features(args.data_dir)
+    positives = build_positive_rows(builder, maccs_features, target_sequence_features)
+    negatives = build_negative_rows(
+        builder,
+        maccs_features,
+        target_sequence_features,
+        category_counts(positives),
+        args.seed,
+    )
+    status_counts = positive_status_counts(builder, maccs_features, target_sequence_features)
 
     write_csv(args.positive_output, positives)
     write_csv(args.classifier_output, positives + negatives)
