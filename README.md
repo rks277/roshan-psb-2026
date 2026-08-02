@@ -170,17 +170,24 @@ features do not improve reliably after this restriction.
 ## No-Affinity Yamanishi Models
 
 To test whether affinity coverage is the limiting factor, build a Yamanishi
-dataset that ignores affinity files completely and uses only PubChem ligand
-descriptors plus target features:
+dataset that ignores affinity files completely and uses ligand descriptors,
+MACCS fingerprints, and target features:
 
 ```bash
 python3 scripts/build_no_affinity_dataset.py
 python3 scripts/train_no_affinity_models.py --n-iter 0
 python3 scripts/train_no_affinity_models.py \
   --n-iter 8 \
+  --feature-sets pubchem_plus_target \
   --classifiers "Random Forest tuned" "Extra Trees tuned" "Hist Gradient Boosting tuned" \
   --metrics-output results/no_affinity_tuned_model_metrics.csv \
   --manifest-output results/no_affinity_tuned_model_manifest.json
+python3 scripts/train_no_affinity_models.py \
+  --n-iter 5 \
+  --feature-sets maccs_plus_target pubchem_plus_target pubchem_plus_maccs_plus_target \
+  --classifiers "Random Forest tuned" "Hist Gradient Boosting tuned" \
+  --metrics-output results/no_affinity_maccs_tuned_model_metrics.csv \
+  --manifest-output results/no_affinity_maccs_tuned_model_manifest.json
 ```
 
 Outputs:
@@ -190,6 +197,7 @@ Outputs:
 - `results/no_affinity_coverage_summary.csv`
 - `results/no_affinity_model_metrics.csv`
 - `results/no_affinity_tuned_model_metrics.csv`
+- `results/no_affinity_maccs_tuned_model_metrics.csv`
 
 Coverage improves substantially without the affinity requirement:
 
@@ -203,15 +211,18 @@ missing target features:                    1,430
 Best tuned no-affinity results:
 
 ```text
-Random Forest, ligand + target:             accuracy 0.811, F1 0.808, ROC-AUC 0.887, PR-AUC 0.895
-Hist Gradient Boosting, ligand + target:    accuracy 0.818, F1 0.819, ROC-AUC 0.888, PR-AUC 0.886
-Extra Trees, ligand + target:               accuracy 0.760, F1 0.737, ROC-AUC 0.812, PR-AUC 0.830
+Random Forest, MACCS + target:              accuracy 0.827, F1 0.825, ROC-AUC 0.896, PR-AUC 0.902
+Hist Gradient Boosting, MACCS + target:     accuracy 0.827, F1 0.825, ROC-AUC 0.895, PR-AUC 0.895
+Random Forest, PubChem + target:            accuracy 0.811, F1 0.808, ROC-AUC 0.887, PR-AUC 0.895
+Hist Gradient Boosting, PubChem + target:   accuracy 0.818, F1 0.819, ROC-AUC 0.888, PR-AUC 0.886
 ```
 
 This is comparable to, and slightly stronger than, the earlier affinity-based
 model runs. It supports the interpretation that the affinity features are not
-driving performance; ligand and target descriptors alone recover most of the
-signal when more Yamanishi pairs are retained.
+driving performance; ligand fingerprints/descriptors and target features alone
+recover most of the signal when more Yamanishi pairs are retained. In the
+current tuned run, MACCS fingerprints plus target features outperform the
+PubChem numeric descriptors plus target features.
 
 ## Baseline Error Analysis
 

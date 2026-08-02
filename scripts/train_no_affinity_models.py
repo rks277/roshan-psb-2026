@@ -14,14 +14,20 @@ from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold, train_t
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_dataset import LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
+from build_no_affinity_dataset import MACCS_FEATURE_COLUMNS  # noqa: E402
 from train_clean_advanced import candidate_models, evaluate, scores  # noqa: E402
 
 LIGAND_FEATURES = [f"ligand_{column}" for column in LIGAND_FEATURE_COLUMNS]
+MACCS_FEATURES = [f"ligand_{column}" for column in MACCS_FEATURE_COLUMNS]
 TARGET_FEATURES = [f"target_{column}" for column in TARGET_FEATURE_COLUMNS]
 FEATURE_SETS = {
-    "ligand_only": LIGAND_FEATURES,
+    "pubchem_only": LIGAND_FEATURES,
+    "maccs_only": MACCS_FEATURES,
+    "pubchem_plus_maccs": LIGAND_FEATURES + MACCS_FEATURES,
     "target_only": TARGET_FEATURES,
-    "ligand_plus_target": LIGAND_FEATURES + TARGET_FEATURES,
+    "pubchem_plus_target": LIGAND_FEATURES + TARGET_FEATURES,
+    "maccs_plus_target": MACCS_FEATURES + TARGET_FEATURES,
+    "pubchem_plus_maccs_plus_target": LIGAND_FEATURES + MACCS_FEATURES + TARGET_FEATURES,
 }
 
 
@@ -52,6 +58,7 @@ def main() -> None:
     parser.add_argument("--cv", type=int, default=3)
     parser.add_argument("--include-slow", action="store_true")
     parser.add_argument("--classifiers", nargs="*")
+    parser.add_argument("--feature-sets", nargs="*")
     parser.add_argument("--metrics-output", type=Path)
     parser.add_argument("--manifest-output", type=Path)
     args = parser.parse_args()
@@ -71,7 +78,17 @@ def main() -> None:
 
     results = []
     best_params = {}
-    for feature_set_name, columns in FEATURE_SETS.items():
+    selected_feature_sets = FEATURE_SETS
+    if args.feature_sets:
+        selected_feature_sets = {
+            name: columns
+            for name, columns in FEATURE_SETS.items()
+            if name in set(args.feature_sets)
+        }
+        if not selected_feature_sets:
+            raise ValueError(f"No feature sets matched: {args.feature_sets}")
+
+    for feature_set_name, columns in selected_feature_sets.items():
         X = numeric_matrix(rows, columns)
         X_train, X_test = X[train_idx], X[test_idx]
         models = candidate_models(
@@ -137,7 +154,7 @@ def main() -> None:
         "positive_rows": int(np.sum(y == 1)),
         "negative_rows": int(np.sum(y == 0)),
         "total_rows": len(rows),
-        "feature_sets": FEATURE_SETS,
+        "feature_sets": selected_feature_sets,
         "n_iter": args.n_iter,
         "cv": args.cv,
         "include_slow": args.include_slow,

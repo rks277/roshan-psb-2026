@@ -13,6 +13,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_dataset import DatasetBuilder, LIGAND_FEATURE_COLUMNS, TARGET_FEATURE_COLUMNS  # noqa: E402
 
+MACCS_FEATURE_COLUMNS = [f"MACCS_{index}" for index in range(166)]
+
+
+def load_maccs_features(data_dir: Path) -> dict[str, dict[str, str]]:
+    path = data_dir / "maccs_fingerprints (2).csv"
+    if not path.exists():
+        return {}
+    with path.open(newline="") as handle:
+        return {
+            row["CID"].strip(): {column: row.get(column, "") for column in MACCS_FEATURE_COLUMNS}
+            for row in csv.DictReader(handle)
+            if row.get("CID")
+        }
+
 
 def choose_target_uniprot(builder: DatasetBuilder, kegg_target: str) -> str | None:
     for uniprot in builder.hsa_to_uniprot.get(kegg_target, []):
@@ -23,6 +37,7 @@ def choose_target_uniprot(builder: DatasetBuilder, kegg_target: str) -> str | No
 
 def make_no_affinity_row(
     builder: DatasetBuilder,
+    maccs_features: dict[str, dict[str, str]],
     category: str,
     kegg_drug: str,
     kegg_target: str,
@@ -52,22 +67,38 @@ def make_no_affinity_row(
     }
     for column in LIGAND_FEATURE_COLUMNS:
         row[f"ligand_{column}"] = ligand.get(column, "")
+    ligand_maccs = maccs_features.get(cid, {})
+    for column in MACCS_FEATURE_COLUMNS:
+        row[f"ligand_{column}"] = ligand_maccs.get(column, "")
     target_features = builder.target_features.get(uniprot, {})
     for column in TARGET_FEATURE_COLUMNS:
         row[f"target_{column}"] = target_features.get(column, "")
     return row
 
 
-def build_positive_rows(builder: DatasetBuilder) -> list[dict[str, str]]:
+def build_positive_rows(
+    builder: DatasetBuilder,
+    maccs_features: dict[str, dict[str, str]],
+) -> list[dict[str, str]]:
     rows = []
     for key in sorted(builder.labels, key=lambda item: (item.category, item.kegg_drug, item.kegg_target)):
-        row = make_no_affinity_row(builder, key.category, key.kegg_drug, key.kegg_target, 1)
+        row = make_no_affinity_row(
+            builder,
+            maccs_features,
+            key.category,
+            key.kegg_drug,
+            key.kegg_target,
+            1,
+        )
         if row is not None:
             rows.append(row)
     return rows
 
 
-def positive_status_counts(builder: DatasetBuilder) -> Counter[str]:
+def positive_status_counts(
+    builder: DatasetBuilder,
+    maccs_features: dict[str, dict[str, str]],
+) -> Counter[str]:
     counts: Counter[str] = Counter()
     for key in builder.labels:
         cid = builder.drug_to_cid.get(key.kegg_drug)
@@ -79,6 +110,8 @@ def positive_status_counts(builder: DatasetBuilder) -> Counter[str]:
             counts["missing_kegg_target_to_uniprot"] += 1
         elif choose_target_uniprot(builder, key.kegg_target) is None:
             counts["missing_target_features"] += 1
+        elif cid not in maccs_features:
+            counts["missing_maccs_fingerprint"] += 1
         else:
             counts["joined"] += 1
     return counts
@@ -93,6 +126,7 @@ def category_counts(rows: list[dict[str, str]]) -> dict[str, int]:
 
 def build_negative_rows(
     builder: DatasetBuilder,
+    maccs_features: dict[str, dict[str, str]],
     count_by_category: dict[str, int],
     seed: int,
 ) -> list[dict[str, str]]:
@@ -112,7 +146,7 @@ def build_negative_rows(
             for target in sorted(targets_by_category[category]):
                 if (drug, target) in labels_by_category[category]:
                     continue
-                row = make_no_affinity_row(builder, category, drug, target, 0)
+                row = make_no_affinity_row(builder, maccs_features, category, drug, target, 0)
                 if row is not None:
                     candidates.append(row)
         rng.shuffle(candidates)
@@ -152,9 +186,10 @@ def main() -> None:
     args = parser.parse_args()
 
     builder = DatasetBuilder(args.data_dir, seed=args.seed)
-    positives = build_positive_rows(builder)
-    negatives = build_negative_rows(builder, category_counts(positives), args.seed)
-    status_counts = positive_status_counts(builder)
+    maccs_features = load_maccs_features(args.data_dir)
+    positives = build_positive_rows(builder, maccs_features)
+    negatives = build_negative_rows(builder, maccs_features, category_counts(positives), args.seed)
+    status_counts = positive_status_counts(builder, maccs_features)
 
     write_csv(args.positive_output, positives)
     write_csv(args.classifier_output, positives + negatives)
