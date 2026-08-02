@@ -1,0 +1,11 @@
+CID,MolecularWeight,MonoisotopicMass,TPSA,Complexity,Charge,HBondDonorCount,HBondAcceptorCount,RotatableBondCount,HeavyAtomCount,IsotopeAtomCount,AtomStereoCount,DefinedAtomStereoCount,UndefinedAtomStereoCount,BondStereoCount,DefinedBondStereoCount,UndefinedBondStereoCount,CovalentUnitCount,Volume3D,FeatureCount3D,FeatureAcceptorCount3D,FeatureDonorCount3D,FeatureAnionCount3D,FeatureCationCount3D,FeatureRingCount3D,FeatureHydrophobeCount3D,ConformerModelRMSD3D,EffectiveRotorCount3D,ConformerCount3D,Title,XLogP,XLogP_Source,Status,Formula,MW
+439183,186.06,185.9929396,124,182,0,4,7,4,11,0,1,1,0,0,0,0,1,,,,,,,,,,,,,-2.6,,,C3H7O7P,186.06
+439278,186.06,185.9929396,124,182,0,4,7,4,11,0,1,1,0,0,0,0,1,,,,,,,,,,,,,-2.6,,,C3H7O7P,186.06
+1005,168.04,167.9823749,104,201,0,3,6,3,10,0,0,0,0,0,0,0,1,,,,,,,,,,,,,-1.1,,,C3H5O6P,168.04
+107735,87.05,87.00821895,57.2,78,-1,0,3,0,6,0,0,0,0,0,0,0,1,,,,,,,,,,,,,-0.6,,,C3H3O3-,87.05
+729,170.06,169.9980249,104,149,0,3,6,4,10,0,1,0,1,0,0,0,1,,,,,,,,,,,,,-2.7,,,C3H7O6P,170.06
+69507,260.14,260.029719,165,273,0,6,9,7,16,0,3,3,0,0,0,0,1,,,,,,,,,,,,,-4.3,,,C6H13O9P,260.14
+3281376,340.12,339.9960499,211,410,0,7,12,9,20,0,3,0,3,0,0,0,1,,,,,,,,,,,,,-5.4,,,C6H14O12P2,340.12
+91435,89.07,89.02386902,60.4,53,-1,1,3,0,6,0,1,0,1,0,0,0,1,,,,,,,,,,,,,0.2,,,C3H5O3-,89.07
+439958,260.14,260.029719,165,263,0,6,9,7,16,0,4,4,0,0,0,0,1,,,,,,,,,,,,,-4.5,,,C6H13O9P,260.14
+77982,230.11,230.0191543,145,224,0,5,8,6,14,0,3,3,0,0,0,0,1,,,,,,,,,,,,,-3.4,,,C5H11O8P,230.11

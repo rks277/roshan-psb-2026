@@ -265,6 +265,29 @@ are mainly sanity-check artifacts. The broader ligand-degree bias analysis was
 more informative before the top-20 affinity restriction, when the held-out set
 had 1,088 rows.
 
+## Glyco Pair Predictions
+
+External glyco metabolite-protein pairs from
+`data/raw/Analysis_Glyc_data_PDB_aff.xlsx` can be scored with:
+
+```bash
+python3 scripts/predict_glyco_pairs.py
+```
+
+This trains the compatible no-affinity Yamanishi model on all available
+Yamanishi no-affinity rows, then predicts the glyco pairs. The glyco ligand
+property file does not include MACCS fingerprints or SMILES, so this prediction
+path uses PubChem numeric ligand descriptors plus rich target sequence features.
+
+Outputs:
+
+- `results/glyco_pair_predictions.csv`
+- `results/glyco_pair_predictions_compact.csv`
+- `results/glyco_pair_predictions_summary_by_metabolite.csv`
+- `results/glyco_pair_predictions_skipped.csv`
+
+Current prediction coverage is 1,868 scored pairs and 0 skipped pairs.
+
 ## Advanced Clean Sweep
 
 For a stricter sweep using the agreed feature sources:
