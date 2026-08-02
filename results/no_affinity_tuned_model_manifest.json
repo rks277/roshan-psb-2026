@@ -1,0 +1,150 @@
+{
+  "dataset": "data/processed/yamanishi_no_affinity_classifier_dataset.csv",
+  "seed": 42,
+  "test_size": 0.2,
+  "positive_rows": 3635,
+  "negative_rows": 3635,
+  "total_rows": 7270,
+  "feature_sets": {
+    "ligand_only": [
+      "ligand_MolecularWeight",
+      "ligand_MonoisotopicMass",
+      "ligand_TPSA",
+      "ligand_Complexity",
+      "ligand_Charge",
+      "ligand_HBondDonorCount",
+      "ligand_HBondAcceptorCount",
+      "ligand_RotatableBondCount",
+      "ligand_HeavyAtomCount",
+      "ligand_IsotopeAtomCount",
+      "ligand_AtomStereoCount",
+      "ligand_DefinedAtomStereoCount",
+      "ligand_UndefinedAtomStereoCount",
+      "ligand_BondStereoCount",
+      "ligand_DefinedBondStereoCount",
+      "ligand_UndefinedBondStereoCount",
+      "ligand_CovalentUnitCount",
+      "ligand_Volume3D",
+      "ligand_FeatureCount3D",
+      "ligand_FeatureAcceptorCount3D",
+      "ligand_FeatureDonorCount3D",
+      "ligand_FeatureAnionCount3D",
+      "ligand_FeatureCationCount3D",
+      "ligand_FeatureRingCount3D",
+      "ligand_FeatureHydrophobeCount3D",
+      "ligand_ConformerModelRMSD3D",
+      "ligand_EffectiveRotorCount3D",
+      "ligand_ConformerCount3D",
+      "ligand_XLogP",
+      "ligand_MW"
+    ],
+    "target_only": [
+      "target_length",
+      "target_mass",
+      "target_degree_up"
+    ],
+    "ligand_plus_target": [
+      "ligand_MolecularWeight",
+      "ligand_MonoisotopicMass",
+      "ligand_TPSA",
+      "ligand_Complexity",
+      "ligand_Charge",
+      "ligand_HBondDonorCount",
+      "ligand_HBondAcceptorCount",
+      "ligand_RotatableBondCount",
+      "ligand_HeavyAtomCount",
+      "ligand_IsotopeAtomCount",
+      "ligand_AtomStereoCount",
+      "ligand_DefinedAtomStereoCount",
+      "ligand_UndefinedAtomStereoCount",
+      "ligand_BondStereoCount",
+      "ligand_DefinedBondStereoCount",
+      "ligand_UndefinedBondStereoCount",
+      "ligand_CovalentUnitCount",
+      "ligand_Volume3D",
+      "ligand_FeatureCount3D",
+      "ligand_FeatureAcceptorCount3D",
+      "ligand_FeatureDonorCount3D",
+      "ligand_FeatureAnionCount3D",
+      "ligand_FeatureCationCount3D",
+      "ligand_FeatureRingCount3D",
+      "ligand_FeatureHydrophobeCount3D",
+      "ligand_ConformerModelRMSD3D",
+      "ligand_EffectiveRotorCount3D",
+      "ligand_ConformerCount3D",
+      "ligand_XLogP",
+      "ligand_MW",
+      "target_length",
+      "target_mass",
+      "target_degree_up"
+    ]
+  },
+  "n_iter": 8,
+  "cv": 3,
+  "include_slow": false,
+  "best_params": {
+    "ligand_only::Random Forest tuned": {
+      "model__class_weight": null,
+      "model__max_depth": 12,
+      "model__max_features": "log2",
+      "model__min_samples_leaf": 3,
+      "model__n_estimators": 314
+    },
+    "ligand_only::Extra Trees tuned": {
+      "model__class_weight": "balanced",
+      "model__max_depth": 20,
+      "model__max_features": "log2",
+      "model__min_samples_leaf": 5,
+      "model__n_estimators": 260
+    },
+    "ligand_only::Hist Gradient Boosting tuned": {
+      "model__l2_regularization": 0.31203728088487304,
+      "model__learning_rate": 0.048998630084050664,
+      "model__max_iter": 149,
+      "model__max_leaf_nodes": 17,
+      "model__min_samples_leaf": 28
+    },
+    "target_only::Random Forest tuned": {
+      "model__class_weight": "balanced",
+      "model__max_depth": null,
+      "model__max_features": 0.4,
+      "model__min_samples_leaf": 5,
+      "model__n_estimators": 406
+    },
+    "target_only::Extra Trees tuned": {
+      "model__class_weight": "balanced",
+      "model__max_depth": 20,
+      "model__max_features": "log2",
+      "model__min_samples_leaf": 5,
+      "model__n_estimators": 260
+    },
+    "target_only::Hist Gradient Boosting tuned": {
+      "model__l2_regularization": 1.223705789444759,
+      "model__learning_rate": 0.04487346516301046,
+      "model__max_iter": 89,
+      "model__max_leaf_nodes": 53,
+      "model__min_samples_leaf": 55
+    },
+    "ligand_plus_target::Random Forest tuned": {
+      "model__class_weight": null,
+      "model__max_depth": 20,
+      "model__max_features": null,
+      "model__min_samples_leaf": 2,
+      "model__n_estimators": 443
+    },
+    "ligand_plus_target::Extra Trees tuned": {
+      "model__class_weight": "balanced",
+      "model__max_depth": 20,
+      "model__max_features": "log2",
+      "model__min_samples_leaf": 5,
+      "model__n_estimators": 260
+    },
+    "ligand_plus_target::Hist Gradient Boosting tuned": {
+      "model__l2_regularization": 1.234963019255433,
+      "model__learning_rate": 0.16291329012207023,
+      "model__max_iter": 163,
+      "model__max_leaf_nodes": 55,
+      "model__min_samples_leaf": 31
+    }
+  }
+}

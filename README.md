@@ -167,6 +167,52 @@ previous full-affinity baseline is in
 `results/top20_affinity_baseline_comparison.csv`; overall, the affinity-derived
 features do not improve reliably after this restriction.
 
+## No-Affinity Yamanishi Models
+
+To test whether affinity coverage is the limiting factor, build a Yamanishi
+dataset that ignores affinity files completely and uses only PubChem ligand
+descriptors plus target features:
+
+```bash
+python3 scripts/build_no_affinity_dataset.py
+python3 scripts/train_no_affinity_models.py --n-iter 0
+python3 scripts/train_no_affinity_models.py \
+  --n-iter 8 \
+  --classifiers "Random Forest tuned" "Extra Trees tuned" "Hist Gradient Boosting tuned" \
+  --metrics-output results/no_affinity_tuned_model_metrics.csv \
+  --manifest-output results/no_affinity_tuned_model_manifest.json
+```
+
+Outputs:
+
+- `data/processed/yamanishi_no_affinity_positive_rows.csv`
+- `data/processed/yamanishi_no_affinity_classifier_dataset.csv`
+- `results/no_affinity_coverage_summary.csv`
+- `results/no_affinity_model_metrics.csv`
+- `results/no_affinity_tuned_model_metrics.csv`
+
+Coverage improves substantially without the affinity requirement:
+
+```text
+total Yamanishi positives:                  5,127
+joined no-affinity positives:               3,635
+sampled no-affinity negatives:              3,635
+missing target features:                    1,430
+```
+
+Best tuned no-affinity results:
+
+```text
+Random Forest, ligand + target:             accuracy 0.811, F1 0.808, ROC-AUC 0.887, PR-AUC 0.895
+Hist Gradient Boosting, ligand + target:    accuracy 0.818, F1 0.819, ROC-AUC 0.888, PR-AUC 0.886
+Extra Trees, ligand + target:               accuracy 0.760, F1 0.737, ROC-AUC 0.812, PR-AUC 0.830
+```
+
+This is comparable to, and slightly stronger than, the earlier affinity-based
+model runs. It supports the interpretation that the affinity features are not
+driving performance; ligand and target descriptors alone recover most of the
+signal when more Yamanishi pairs are retained.
+
 ## Baseline Error Analysis
 
 False-positive and false-negative analysis for the Random Forest baseline can
