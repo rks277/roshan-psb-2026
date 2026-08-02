@@ -242,6 +242,33 @@ recover most of the signal when more Yamanishi pairs are retained. Adding
 sequence-derived target features improves PR-AUC to `0.916` and tuned ROC-AUC
 to `0.907`, which is much closer to the literature-level AUC numbers.
 
+### Negative Ratio Accuracy
+
+To compare against literature reporting raw accuracy under larger negative
+sets, run:
+
+```bash
+python3 scripts/train_negative_ratio_models.py
+```
+
+Output:
+
+- `results/negative_ratio_accuracy_metrics.csv`
+
+Using PubChem + MACCS + rich target features, raw accuracy crosses 90% when the
+negative sampling ratio is increased:
+
+```text
+1:1 negatives, Extra Trees:  accuracy 0.843, balanced accuracy 0.843, always-negative accuracy 0.500
+3:1 negatives, Extra Trees:  accuracy 0.893, balanced accuracy 0.810, always-negative accuracy 0.750
+5:1 negatives, Extra Trees:  accuracy 0.913, balanced accuracy 0.771, always-negative accuracy 0.833
+10:1 negatives, Extra Trees: accuracy 0.942, balanced accuracy 0.714, always-negative accuracy 0.909
+```
+
+This reproduces 90%+ raw accuracy, but it also shows why raw accuracy is
+sensitive to the negative sampling protocol. At 10:1 negatives, an
+always-negative classifier already gets `0.909` accuracy.
+
 ## Baseline Error Analysis
 
 False-positive and false-negative analysis for the Random Forest baseline can

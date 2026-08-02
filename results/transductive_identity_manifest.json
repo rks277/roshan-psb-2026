@@ -1,0 +1,27 @@
+{
+  "dataset": "data/processed/yamanishi_no_affinity_classifier_dataset.csv",
+  "seed": 42,
+  "test_size": 0.2,
+  "positive_rows": 3635,
+  "negative_rows": 3635,
+  "total_rows": 7270,
+  "identity_columns": [
+    "category",
+    "kegg_drug",
+    "kegg_target",
+    "uniprot_id"
+  ],
+  "topology_columns": [
+    "ligand_yamanishi_degree",
+    "target_yamanishi_degree",
+    "target_uniprot_count"
+  ],
+  "feature_sets": [
+    "topology",
+    "identity_plus_topology",
+    "molecular",
+    "molecular_plus_topology",
+    "molecular_plus_identity",
+    "molecular_plus_identity_plus_topology"
+  ]
+}
