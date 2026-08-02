@@ -242,6 +242,40 @@ recover most of the signal when more Yamanishi pairs are retained. Adding
 sequence-derived target features improves PR-AUC to `0.916` and tuned ROC-AUC
 to `0.907`, which is much closer to the literature-level AUC numbers.
 
+### Balanced Accuracy Gap Audit
+
+To audit why the balanced 1:1 accuracy is below stronger literature reports,
+run:
+
+```bash
+python3 scripts/audit_balanced_accuracy_gap.py
+```
+
+Outputs:
+
+- `results/balanced_accuracy_gap_coverage_by_category.csv`
+- `results/balanced_accuracy_gap_conflicts.csv`
+- `results/balanced_accuracy_gap_model_metrics.csv`
+- `results/balanced_accuracy_gap_summary.json`
+
+Current findings:
+
+```text
+feature-complete positives:           3,635 / 5,127
+combined 80/20 best accuracy:         0.842
+combined 5-fold Extra Trees accuracy: 0.834 +/- 0.011
+best per-category accuracy:           0.888 on enzyme
+conflicting exact feature rows:        2
+```
+
+The main gap versus 0.90+ balanced literature numbers appears to be protocol and
+feature representation, not a simple label-join bug. Older Yamanishi papers
+often train/evaluate per target class and use richer drug-drug/protein-protein
+similarity or graph features. This repo's current no-affinity model uses
+standalone PubChem descriptors, MACCS fingerprints, and sequence-derived target
+features, and it drops 1,492 positives because complete local feature coverage
+is unavailable.
+
 ### Negative Ratio Accuracy
 
 To compare against literature reporting raw accuracy under larger negative
