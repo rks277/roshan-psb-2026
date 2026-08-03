@@ -316,6 +316,27 @@ Explicit ligand-protein interaction terms were also tested but did not improve
 the clean model (`PR-AUC 0.354`), so the publishable clean reranker remains the
 rank + PubChem + MACCS + Morgan + target-sequence HGB model.
 
+Formal positive-unlabeled (PU) variants were explored because unlabeled
+affinity hits are not confirmed negatives. Two PU approaches underperformed the
+clean supervised HGB baseline on the same ligand-held-out split:
+
+```text
+nnPU MLP, selected prior 0.10:
+  PR-AUC 0.016
+  top 1.0% known-support rate 1.5%
+
+two-step PU HGB, reliable-negative fraction 0.40:
+  PR-AUC 0.137
+  top 1.0% known-support rate 17.4%
+
+clean supervised HGB:
+  PR-AUC 0.391
+  top 1.0% known-support rate 43.6%
+```
+
+Conclusion: PU learning is the right conceptual framing, but the current formal
+PU implementations are not the best operational rerankers for these features.
+
 To join chemistry/protein features at training time without materializing a
 multi-GB affinity-hit CSV:
 

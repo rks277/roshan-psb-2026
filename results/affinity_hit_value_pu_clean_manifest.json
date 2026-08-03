@@ -1,0 +1,26 @@
+{
+  "dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "feature_set": "clean_rank_plus_maccs_morgan_target",
+  "feature_count": 1663,
+  "method": "non-negative PU risk MLP",
+  "priors_tested": [
+    0.02,
+    0.05,
+    0.1
+  ],
+  "selected_class_prior": 0.1,
+  "observed_inner_train_labeled_positive_fraction": 0.013706678623611359,
+  "seed": 42,
+  "outer_test_size": 0.2,
+  "inner_validation_size": 0.25,
+  "epochs": 15,
+  "patience": 3,
+  "batch_size": 512,
+  "hidden": 128,
+  "dropout": 0.25,
+  "lr": 0.001,
+  "weight_decay": 0.0001,
+  "outer_test_pr_auc": 0.016325245334473153,
+  "outer_test_roc_auc": 0.6366555517188057,
+  "outer_test_top_1_percent_support": 0.014527845036319613
+}

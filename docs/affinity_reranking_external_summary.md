@@ -322,6 +322,34 @@ balanced HGB validation PR-AUC:  0.409
 outer test PR-AUC after select:  0.391
 ```
 
+Because unsupported affinity hits are not confirmed negatives, we also explored
+formal positive-unlabeled (PU) learning. Two approaches were tested:
+
+```text
+nnPU MLP, selected class prior 0.10:
+  outer test PR-AUC: 0.016
+  top 1.0% known-support rate: 1.5%
+
+two-step PU HGB, reliable-negative fraction 0.40:
+  outer test PR-AUC: 0.137
+  top 1.0% known-support rate: 17.4%
+```
+
+Both underperformed the clean supervised HGB reranker:
+
+```text
+clean supervised HGB:
+  outer test PR-AUC: 0.391
+  top 1.0% known-support rate: 43.6%
+```
+
+Interpretation: PU learning is the correct conceptual framing for the unknown
+labels, but these first formal PU implementations are not yet the best
+operational rerankers. For the current paper-quality result, we should describe
+the task as positive-unlabeled prioritization but use the clean supervised HGB
+as the empirical reranking model, while reporting PU baselines as negative
+methodological controls.
+
 Clean-ablation files:
 
 - [affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv)
@@ -332,6 +360,10 @@ Clean-ablation files:
 - [affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv)
 - [affinity_hit_value_clean_tuned_fast_metrics.csv](../results/affinity_hit_value_clean_tuned_fast_metrics.csv)
 - [affinity_hit_value_clean_tuned_fast_manifest.json](../results/affinity_hit_value_clean_tuned_fast_manifest.json)
+- [affinity_hit_value_pu_clean_metrics.csv](../results/affinity_hit_value_pu_clean_metrics.csv)
+- [affinity_hit_value_pu_clean_manifest.json](../results/affinity_hit_value_pu_clean_manifest.json)
+- [affinity_hit_value_twostep_pu_clean_metrics.csv](../results/affinity_hit_value_twostep_pu_clean_metrics.csv)
+- [affinity_hit_value_twostep_pu_clean_manifest.json](../results/affinity_hit_value_twostep_pu_clean_manifest.json)
 
 ## Point 7: How Should We Choose Good Affinity Pairs?
 
