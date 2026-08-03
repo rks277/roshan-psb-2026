@@ -52,6 +52,27 @@ FEATURE_SETS = {
         + MACCS_OUTPUT_FEATURES
         + TARGET_BASIC_OUTPUT_FEATURES
     ),
+    "clean_rank_plus_morgan_basic_target": (
+        CLEAN_RANK_FEATURES
+        + LIGAND_OUTPUT_FEATURES
+        + MORGAN_OUTPUT_FEATURES
+        + TARGET_BASIC_OUTPUT_FEATURES
+    ),
+    "clean_rank_plus_maccs_morgan_basic_target": (
+        CLEAN_RANK_FEATURES
+        + LIGAND_OUTPUT_FEATURES
+        + MACCS_OUTPUT_FEATURES
+        + MORGAN_OUTPUT_FEATURES
+        + TARGET_BASIC_OUTPUT_FEATURES
+    ),
+    "clean_rank_plus_maccs_morgan_target": (
+        CLEAN_RANK_FEATURES
+        + LIGAND_OUTPUT_FEATURES
+        + MACCS_OUTPUT_FEATURES
+        + MORGAN_OUTPUT_FEATURES
+        + TARGET_BASIC_OUTPUT_FEATURES
+        + TARGET_SEQUENCE_OUTPUT_FEATURES
+    ),
     "rank_plus_basic_context": RANK_FEATURES + LIGAND_OUTPUT_FEATURES + TARGET_BASIC_OUTPUT_FEATURES,
     "rank_plus_maccs_basic_target": (
         RANK_FEATURES
@@ -68,6 +89,13 @@ FEATURE_SETS = {
         + TARGET_SEQUENCE_OUTPUT_FEATURES
     ),
 }
+
+
+def parse_float(value: str | float | int | None) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return np.nan
 
 
 def load_feature_maps(data_dir: Path, seed: int) -> dict[str, dict[str, dict[str, str]]]:
@@ -111,16 +139,49 @@ def numeric_matrix(
     columns: list[str],
     feature_maps: dict[str, dict[str, dict[str, str]]] | None = None,
 ) -> np.ndarray:
-    matrix = []
-    for row in rows:
-        values = []
-        for column in columns:
-            try:
-                values.append(float(augmented_value(row, column, feature_maps)))
-            except (TypeError, ValueError):
-                values.append(np.nan)
-        matrix.append(values)
-    return np.asarray(matrix, dtype=float)
+    compact_columns = set(rows[0])
+    blocks = []
+    direct_columns = [column for column in columns if column in compact_columns]
+    if direct_columns:
+        blocks.append(
+            np.asarray(
+                [[parse_float(row.get(column, "")) for column in direct_columns] for row in rows],
+                dtype=np.float32,
+            )
+        )
+    if feature_maps is not None:
+        ligand_columns = [column for column in columns if column.startswith("ligand_") and column not in compact_columns]
+        target_columns = [column for column in columns if column.startswith("target_") and column not in compact_columns]
+        if ligand_columns:
+            blocks.append(entity_feature_block(rows, "pubchem_cid", ligand_columns, feature_maps, ("ligand", "maccs", "morgan")))
+        if target_columns:
+            blocks.append(entity_feature_block(rows, "uniprot_id", target_columns, feature_maps, ("target", "target_sequence")))
+    if not blocks:
+        return np.empty((len(rows), 0), dtype=np.float32)
+    return np.concatenate(blocks, axis=1)
+
+
+def entity_feature_block(
+    rows: list[dict[str, str]],
+    id_column: str,
+    columns: list[str],
+    feature_maps: dict[str, dict[str, dict[str, str]]],
+    groups: tuple[str, ...],
+) -> np.ndarray:
+    entity_ids = np.asarray([row[id_column] for row in rows])
+    unique_ids, inverse = np.unique(entity_ids, return_inverse=True)
+    prefix = "ligand_" if id_column == "pubchem_cid" else "target_"
+    unique_matrix = np.empty((len(unique_ids), len(columns)), dtype=np.float32)
+    for entity_idx, entity_id in enumerate(unique_ids):
+        for column_idx, column in enumerate(columns):
+            raw_column = column.removeprefix(prefix)
+            value = ""
+            for group in groups:
+                value = feature_maps[group].get(entity_id, {}).get(raw_column, "")
+                if value:
+                    break
+            unique_matrix[entity_idx, column_idx] = parse_float(value)
+    return unique_matrix[inverse]
 
 
 def feature_set_available(
@@ -171,10 +232,58 @@ def make_models(seed: int) -> dict[str, object]:
                 ),
             ]
         ),
+        "Extra Trees Fast": Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                (
+                    "model",
+                    ExtraTreesClassifier(
+                        n_estimators=160,
+                        max_features="sqrt",
+                        min_samples_leaf=2,
+                        random_state=seed,
+                        class_weight="balanced",
+                        n_jobs=1,
+                    ),
+                ),
+            ]
+        ),
         "Hist Gradient Boosting": Pipeline(
             [
                 ("imputer", SimpleImputer(strategy="median")),
                 ("model", HistGradientBoostingClassifier(random_state=seed)),
+            ]
+        ),
+        "Hist Gradient Boosting Deep": Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                (
+                    "model",
+                    HistGradientBoostingClassifier(
+                        random_state=seed,
+                        max_iter=300,
+                        learning_rate=0.04,
+                        max_leaf_nodes=31,
+                        min_samples_leaf=20,
+                        l2_regularization=0.05,
+                    ),
+                ),
+            ]
+        ),
+        "Hist Gradient Boosting Wide": Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                (
+                    "model",
+                    HistGradientBoostingClassifier(
+                        random_state=seed,
+                        max_iter=220,
+                        learning_rate=0.06,
+                        max_leaf_nodes=63,
+                        min_samples_leaf=15,
+                        l2_regularization=0.01,
+                    ),
+                ),
             ]
         ),
     }

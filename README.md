@@ -287,6 +287,22 @@ model still enriches the top 1.0% of held-out hits to 23.0% known-supported
 versus a 1.0% baseline, but the earlier larger enrichment is partly driven by
 dataset-prior features rather than direct ligand-protein compatibility.
 
+After adding richer clean features (Morgan fingerprints plus protein amino-acid,
+residue-group, and dipeptide-composition features), the best no-prior reranker
+improves substantially:
+
+```text
+clean rank + PubChem + MACCS + Morgan + target sequence:
+  Hist Gradient Boosting
+  ROC-AUC 0.948
+  PR-AUC 0.391
+  top 0.5% known-support rate: 55.3%
+  top 1.0% known-support rate: 43.6%
+```
+
+This is the current best chemistry/biology-aware affinity reranker that does
+not use the suspicious label-prior/context features.
+
 To join chemistry/protein features at training time without materializing a
 multi-GB affinity-hit CSV:
 

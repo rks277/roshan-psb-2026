@@ -38,10 +38,12 @@ as a final proof that a pair binds.
 Important update: we ran an ablation removing the label-context prior features
 (`ligand_yamanishi_degree_any`, `target_yamanishi_degree_any`,
 `target_in_yamanishi_universe`, and `target_in_bindingdb_universe`). After that
-removal, the model is much weaker but still enriched above baseline. The cleaner
-chemistry + biology model reaches PR-AUC `0.176`, with the top 1.0% of scored
-held-out hits at `23.0%` known-supported versus the `1.0%` baseline. This is the
-more defensible estimate of signal not driven by dataset-prior features.
+removal, rank-only performance collapses. Adding richer ligand chemistry and
+protein sequence-composition features recovers much of the top-shortlist
+performance without those suspicious features. The current clean full model
+reaches PR-AUC `0.391`, with the top 0.5% of scored held-out hits at `55.3%`
+known-supported and the top 1.0% at `43.6%`, versus the `1.0%` baseline. This is
+the more defensible estimate of signal not driven by dataset-prior features.
 
 ## The Most Useful Visuals
 
@@ -282,11 +284,30 @@ top 0.5% known-support rate: 32.5%
 top 1.0% known-support rate: 23.0%
 ```
 
+Expanded clean result, after adding Morgan fingerprints and protein
+sequence-composition features:
+
+```text
+feature set: clean rank + PubChem + MACCS + Morgan + target sequence
+classifier: Hist Gradient Boosting
+split: ligand-held-out
+features: 1,663
+ROC-AUC: 0.948
+PR-AUC: 0.391
+baseline held-out support rate: 1.0%
+top 0.1% known-support rate: 78.0%
+top 0.5% known-support rate: 55.3%
+top 1.0% known-support rate: 43.6%
+```
+
 Clean-ablation files:
 
 - [affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv)
 - [affinity_hit_value_clean_ablation_ligand_holdout_enrichment.csv](../results/affinity_hit_value_clean_ablation_ligand_holdout_enrichment.csv)
 - [affinity_hit_value_clean_ablation_ligand_holdout_model_manifest.json](../results/affinity_hit_value_clean_ablation_ligand_holdout_model_manifest.json)
+- [affinity_hit_value_clean_full_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_clean_full_ligand_holdout_model_metrics.csv)
+- [affinity_hit_value_clean_full_ligand_holdout_enrichment.csv](../results/affinity_hit_value_clean_full_ligand_holdout_enrichment.csv)
+- [affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv)
 
 ## Point 7: How Should We Choose Good Affinity Pairs?
 
@@ -301,9 +322,13 @@ Recommended workflow:
 5. Treat unsupported high-scoring pairs as plausible novel candidates, not as
    confirmed positives.
 
-The main scored output is:
+The main scored output from the initial prior-context model is:
 
 - [affinity_hit_value_maccs_biology_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_maccs_biology_ligand_holdout_scored_sample.csv)
+
+The cleaner scored output that avoids label-prior/context features is:
+
+- [affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv)
 
 Useful columns:
 
