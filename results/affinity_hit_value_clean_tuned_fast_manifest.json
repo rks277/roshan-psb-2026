@@ -1,0 +1,22 @@
+{
+  "dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "feature_set": "clean_rank_plus_maccs_morgan_target",
+  "feature_count": 1663,
+  "excluded_label_prior_features": [
+    "ligand_yamanishi_degree_any",
+    "target_yamanishi_degree_any",
+    "target_in_yamanishi_universe",
+    "target_in_bindingdb_universe"
+  ],
+  "rows": 214842,
+  "positive_rows": 2862,
+  "negative_or_unlabeled_rows": 211980,
+  "outer_test_size": 0.2,
+  "inner_validation_size": 0.25,
+  "seed": 42,
+  "selected_config": "hgb_default",
+  "inner_validation_pr_auc": 0.4524797599619368,
+  "outer_test_pr_auc": 0.39118421598040864,
+  "outer_test_roc_auc": 0.9478703132066741,
+  "outer_test_top_1_percent_support": 0.4358353510895884
+}

@@ -1,0 +1,15 @@
+{
+  "dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "rows": 214842,
+  "positive_rows": 2862,
+  "negative_or_unlabeled_rows": 211980,
+  "seed": 42,
+  "test_size": 0.2,
+  "split_mode": "ligand",
+  "augment_feature_maps": true,
+  "calibrate": false,
+  "skip_scored_output": true,
+  "best_feature_set": "clean_rank_plus_maccs_morgan_target_interactions",
+  "best_classifier": "Hist Gradient Boosting",
+  "best_pr_auc": 0.35413088315883456
+}

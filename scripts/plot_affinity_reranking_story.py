@@ -237,12 +237,12 @@ def main() -> None:
     parser.add_argument(
         "--scored",
         type=Path,
-        default=Path("results/affinity_hit_value_maccs_biology_ligand_holdout_scored_sample.csv"),
+        default=Path("results/affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv"),
     )
     parser.add_argument(
         "--manifest",
         type=Path,
-        default=Path("results/affinity_hit_value_maccs_biology_ligand_holdout_model_manifest.json"),
+        default=Path("results/affinity_hit_value_clean_full_best_ligand_holdout_model_manifest.json"),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("results/plots"))
     args = parser.parse_args()

@@ -21,21 +21,21 @@ combines affinity-rank context, ligand chemistry, and target biology, the top
 shortlist becomes strongly enriched for known Yamanishi/BindingDB-supported
 pairs.
 
-Initial key result on ligand-held-out evaluation, using affinity/rank features
-plus label-context prior features:
+Key clean result on ligand-held-out evaluation, excluding label-context prior
+features:
 
 ```text
 baseline known-support rate:        1.0%
 top 0.5% by raw affinity rank:       5.8% known-supported
-top 0.5% by model reranking:        69.4% known-supported
+top 0.5% by model reranking:        55.3% known-supported
 top 1.0% by raw affinity rank:       5.3% known-supported
-top 1.0% by model reranking:        56.9% known-supported
+top 1.0% by model reranking:        43.6% known-supported
 ```
 
 The current model should be interpreted as a prioritization/reranking tool, not
 as a final proof that a pair binds.
 
-Important update: we ran an ablation removing the label-context prior features
+Methodology note: we ran an ablation removing the label-context prior features
 (`ligand_yamanishi_degree_any`, `target_yamanishi_degree_any`,
 `target_in_yamanishi_universe`, and `target_in_bindingdb_universe`). After that
 removal, rank-only performance collapses. Adding richer ligand chemistry and
@@ -51,7 +51,7 @@ the more defensible estimate of signal not driven by dataset-prior features.
 
 This is the most intuitive presentation figure. Each curve is a known-supported
 ligand-target pair that was relatively buried in the raw affinity ranking and
-then promoted by the model.
+then promoted by the clean model.
 
 ![Known binders rescued from noisy rankings](../results/plots/affinity_reranking_rescue_ribbons.png)
 
@@ -64,7 +64,7 @@ Source:
 
 This is the clearest quantitative figure. The gray bars are all selected
 candidates; the colored part is the subset already supported by Yamanishi or
-BindingDB.
+BindingDB. This figure was regenerated from the clean no-prior model.
 
 ![Known binders in raw vs model shortlist](../results/plots/affinity_reranking_priority_funnel.png)
 
@@ -74,8 +74,8 @@ Source:
 
 ### 3. Rescue Map
 
-This heatmap shows where known-supported hits move after reranking. Hits above
-the diagonal were promoted by the model relative to raw affinity rank.
+This heatmap shows where known-supported hits move after clean reranking. Hits
+above the diagonal were promoted by the model relative to raw affinity rank.
 
 ![Reranking rescue map](../results/plots/affinity_reranking_rescue_map.png)
 
@@ -248,7 +248,8 @@ Code:
 
 ## Point 6: What Model Did We Train and How Well Did It Work?
 
-The initial chemistry + biology reranking model was:
+The earlier chemistry + biology reranking model, before removing label-prior
+features, was:
 
 ```text
 feature set: rank + PubChem + MACCS + target basic
@@ -300,6 +301,27 @@ top 0.5% known-support rate: 55.3%
 top 1.0% known-support rate: 43.6%
 ```
 
+We also tried explicit ligand-protein interaction terms such as
+`XLogP x target hydrophobicity`, `TPSA x target polarity`, and
+`affinity_zscore x target charged fraction`. They did not improve the held-out
+result: PR-AUC dropped to `0.354`, so they are not the current main model.
+
+The current publishable model-selection procedure is:
+
+1. Hold out full ligands as the outer test set.
+2. Split the remaining ligands again into inner training and validation ligands.
+3. Select the model configuration on inner-validation PR-AUC.
+4. Evaluate the selected model once on the outer held-out ligands.
+
+In this tuning pass, default Hist Gradient Boosting beat class-balanced Hist
+Gradient Boosting on the inner validation ligands:
+
+```text
+default HGB validation PR-AUC:   0.452
+balanced HGB validation PR-AUC:  0.409
+outer test PR-AUC after select:  0.391
+```
+
 Clean-ablation files:
 
 - [affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv)
@@ -308,6 +330,8 @@ Clean-ablation files:
 - [affinity_hit_value_clean_full_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_clean_full_ligand_holdout_model_metrics.csv)
 - [affinity_hit_value_clean_full_ligand_holdout_enrichment.csv](../results/affinity_hit_value_clean_full_ligand_holdout_enrichment.csv)
 - [affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv)
+- [affinity_hit_value_clean_tuned_fast_metrics.csv](../results/affinity_hit_value_clean_tuned_fast_metrics.csv)
+- [affinity_hit_value_clean_tuned_fast_manifest.json](../results/affinity_hit_value_clean_tuned_fast_manifest.json)
 
 ## Point 7: How Should We Choose Good Affinity Pairs?
 
@@ -326,7 +350,7 @@ The main scored output from the initial prior-context model is:
 
 - [affinity_hit_value_maccs_biology_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_maccs_biology_ligand_holdout_scored_sample.csv)
 
-The cleaner scored output that avoids label-prior/context features is:
+The recommended scored output that avoids label-prior/context features is:
 
 - [affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv](../results/affinity_hit_value_clean_full_best_ligand_holdout_scored_sample.csv)
 

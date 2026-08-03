@@ -1,0 +1,2 @@
+Feature Set,Classifier,Train Rows,Test Rows,Split Mode,Features,Positive Train Fraction,Positive Test Fraction,ROC AUC,PR AUC,Brier Score,Max Precision At Recall >= 0.10,Max Precision At Recall >= 0.25,Max Precision At Recall >= 0.50
+clean_rank_plus_maccs_morgan_target_interactions,Hist Gradient Boosting,173561,41281,ligand,1675,0.014064219496315417,0.010198396356677407,0.9443280049017384,0.35413088315883456,0.00824339420630683,0.7627118644067796,0.5145631067961165,0.32379518072289154

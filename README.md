@@ -303,6 +303,19 @@ clean rank + PubChem + MACCS + Morgan + target sequence:
 This is the current best chemistry/biology-aware affinity reranker that does
 not use the suspicious label-prior/context features.
 
+A nested ligand-level tuning pass selected default Hist Gradient Boosting over
+class-balanced Hist Gradient Boosting on inner validation ligands:
+
+```text
+default HGB validation PR-AUC:   0.452
+balanced HGB validation PR-AUC:  0.409
+outer test PR-AUC after select:  0.391
+```
+
+Explicit ligand-protein interaction terms were also tested but did not improve
+the clean model (`PR-AUC 0.354`), so the publishable clean reranker remains the
+rank + PubChem + MACCS + Morgan + target-sequence HGB model.
+
 To join chemistry/protein features at training time without materializing a
 multi-GB affinity-hit CSV:
 

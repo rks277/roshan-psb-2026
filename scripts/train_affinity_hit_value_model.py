@@ -41,6 +41,20 @@ LABEL_PRIOR_FEATURES = [
     "target_in_bindingdb_universe",
 ]
 CLEAN_RANK_FEATURES = [column for column in RANK_FEATURES if column not in LABEL_PRIOR_FEATURES]
+PAIR_INTERACTION_FEATURES = [
+    "pair_xlogp_x_target_hydrophobic",
+    "pair_tpsa_x_target_polar",
+    "pair_hbd_x_target_polar",
+    "pair_hba_x_target_polar",
+    "pair_charge_x_target_charged",
+    "pair_ring_x_target_aromatic",
+    "pair_hydrophobe_x_target_hydrophobic",
+    "pair_mw_per_target_length",
+    "pair_rotatable_per_target_length",
+    "pair_affinity_z_x_xlogp",
+    "pair_affinity_z_x_target_hydrophobic",
+    "pair_affinity_z_x_target_charged",
+]
 
 FEATURE_SETS = {
     "rank_only": RANK_FEATURES,
@@ -72,6 +86,15 @@ FEATURE_SETS = {
         + MORGAN_OUTPUT_FEATURES
         + TARGET_BASIC_OUTPUT_FEATURES
         + TARGET_SEQUENCE_OUTPUT_FEATURES
+    ),
+    "clean_rank_plus_maccs_morgan_target_interactions": (
+        CLEAN_RANK_FEATURES
+        + LIGAND_OUTPUT_FEATURES
+        + MACCS_OUTPUT_FEATURES
+        + MORGAN_OUTPUT_FEATURES
+        + TARGET_BASIC_OUTPUT_FEATURES
+        + TARGET_SEQUENCE_OUTPUT_FEATURES
+        + PAIR_INTERACTION_FEATURES
     ),
     "rank_plus_basic_context": RANK_FEATURES + LIGAND_OUTPUT_FEATURES + TARGET_BASIC_OUTPUT_FEATURES,
     "rank_plus_maccs_basic_target": (
@@ -152,10 +175,13 @@ def numeric_matrix(
     if feature_maps is not None:
         ligand_columns = [column for column in columns if column.startswith("ligand_") and column not in compact_columns]
         target_columns = [column for column in columns if column.startswith("target_") and column not in compact_columns]
+        pair_columns = [column for column in columns if column.startswith("pair_")]
         if ligand_columns:
             blocks.append(entity_feature_block(rows, "pubchem_cid", ligand_columns, feature_maps, ("ligand", "maccs", "morgan")))
         if target_columns:
             blocks.append(entity_feature_block(rows, "uniprot_id", target_columns, feature_maps, ("target", "target_sequence")))
+        if pair_columns:
+            blocks.append(pair_interaction_block(rows, pair_columns, feature_maps))
     if not blocks:
         return np.empty((len(rows), 0), dtype=np.float32)
     return np.concatenate(blocks, axis=1)
@@ -182,6 +208,72 @@ def entity_feature_block(
                     break
             unique_matrix[entity_idx, column_idx] = parse_float(value)
     return unique_matrix[inverse]
+
+
+def lookup_numeric(
+    feature_maps: dict[str, dict[str, dict[str, str]]],
+    groups: tuple[str, ...],
+    entity_id: str,
+    column: str,
+) -> float:
+    for group in groups:
+        value = feature_maps[group].get(entity_id, {}).get(column, "")
+        if value:
+            return parse_float(value)
+    return np.nan
+
+
+def safe_divide(numerator: float, denominator: float) -> float:
+    if np.isnan(numerator) or np.isnan(denominator) or denominator == 0:
+        return np.nan
+    return numerator / denominator
+
+
+def pair_interaction_block(
+    rows: list[dict[str, str]],
+    columns: list[str],
+    feature_maps: dict[str, dict[str, dict[str, str]]],
+) -> np.ndarray:
+    matrix = np.empty((len(rows), len(columns)), dtype=np.float32)
+    for row_idx, row in enumerate(rows):
+        cid = row["pubchem_cid"]
+        uniprot = row["uniprot_id"]
+        affinity_z = parse_float(row.get("affinity_zscore_within_ligand", ""))
+        ligand = {
+            "xlogp": lookup_numeric(feature_maps, ("ligand",), cid, "XLogP"),
+            "tpsa": lookup_numeric(feature_maps, ("ligand",), cid, "TPSA"),
+            "hbd": lookup_numeric(feature_maps, ("ligand",), cid, "HBondDonorCount"),
+            "hba": lookup_numeric(feature_maps, ("ligand",), cid, "HBondAcceptorCount"),
+            "charge": lookup_numeric(feature_maps, ("ligand",), cid, "Charge"),
+            "rings": lookup_numeric(feature_maps, ("ligand",), cid, "FeatureRingCount3D"),
+            "hydrophobes": lookup_numeric(feature_maps, ("ligand",), cid, "FeatureHydrophobeCount3D"),
+            "mw": lookup_numeric(feature_maps, ("ligand",), cid, "MolecularWeight"),
+            "rotatable": lookup_numeric(feature_maps, ("ligand",), cid, "RotatableBondCount"),
+        }
+        target = {
+            "length": lookup_numeric(feature_maps, ("target",), uniprot, "length"),
+            "hydrophobic": lookup_numeric(feature_maps, ("target_sequence",), uniprot, "group_hydrophobic"),
+            "polar": lookup_numeric(feature_maps, ("target_sequence",), uniprot, "group_polar"),
+            "charged": lookup_numeric(feature_maps, ("target_sequence",), uniprot, "group_charged"),
+            "aromatic": lookup_numeric(feature_maps, ("target_sequence",), uniprot, "group_aromatic"),
+        }
+        values = {
+            "pair_xlogp_x_target_hydrophobic": ligand["xlogp"] * target["hydrophobic"],
+            "pair_tpsa_x_target_polar": ligand["tpsa"] * target["polar"],
+            "pair_hbd_x_target_polar": ligand["hbd"] * target["polar"],
+            "pair_hba_x_target_polar": ligand["hba"] * target["polar"],
+            "pair_charge_x_target_charged": ligand["charge"] * target["charged"],
+            "pair_ring_x_target_aromatic": ligand["rings"] * target["aromatic"],
+            "pair_hydrophobe_x_target_hydrophobic": ligand["hydrophobes"] * target["hydrophobic"],
+            "pair_mw_per_target_length": safe_divide(ligand["mw"], target["length"]),
+            "pair_rotatable_per_target_length": safe_divide(ligand["rotatable"], target["length"]),
+            "pair_affinity_z_x_xlogp": affinity_z * ligand["xlogp"],
+            "pair_affinity_z_x_target_hydrophobic": affinity_z * target["hydrophobic"],
+            "pair_affinity_z_x_target_charged": affinity_z * target["charged"],
+        }
+        for column_idx, column in enumerate(columns):
+            matrix[row_idx, column_idx] = values[column]
+    return matrix
 
 
 def feature_set_available(
