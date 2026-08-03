@@ -1,0 +1,31 @@
+{
+  "exclude_frequent_top_hits": false,
+  "bindingdb_positive_pairs": 1223,
+  "status_counts": {
+    "ranked_known_positive": 2721,
+    "known_target_not_in_affinity_table": 1475,
+    "missing_ligand_affinity_file": 910,
+    "missing_kegg_drug_to_pubchem_cid": 21
+  },
+  "rank_summary": {
+    "count": 2721,
+    "mean": 1896.5512679162073,
+    "median": 1325.0,
+    "p75": 2770.0,
+    "p90": 4397.0,
+    "p95": 5727.0,
+    "max": 7528.0
+  },
+  "higher_ranked_targets_before_known_positive_summary": {
+    "count": 2721,
+    "mean": 1895.5512679162073,
+    "median": 1324.0,
+    "p75": 2769.0,
+    "p90": 4396.0,
+    "p95": 5726.0,
+    "max": 7527.0
+  },
+  "pairs_with_known_target_rank_1": 4,
+  "pairs_with_higher_ranked_apparent_false_positives": 2717,
+  "pairs_with_higher_ranked_bindingdb_supported_targets": 31
+}

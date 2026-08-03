@@ -218,6 +218,58 @@ Outputs:
 - `results/expanded_no_affinity_model_metrics.csv`
 - `results/similarity_feature_model_metrics.csv`
 
+## Affinity Hit Value Scoring
+
+The docking affinity files can also be treated as ranked candidate lists rather
+than direct classifier features. In this setup, each row is one
+`PubChem CID + UniProt` hit from an affinity file:
+
+```text
+[ligand id][target id][rank/affinity context][support label]
+```
+
+The support label is:
+
+- `label_supported = 1`: the hit is supported by Yamanishi or BindingDB.
+- `label_supported = 0`: the hit is currently unsupported by those sources.
+
+Unsupported does not mean experimentally false. It means "not in our current
+known-positive sets", so precision values should be read as known-support
+rates, not true biochemical false-positive rates.
+
+Build the compact affinity-hit value dataset:
+
+```bash
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/build_affinity_hit_value_dataset.py
+```
+
+Evaluate whether the ranked affinity lists are enriched for known binders:
+
+```bash
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/analyze_affinity_rank_positions.py
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/train_affinity_hit_value_model.py \
+  --split-mode row \
+  --output-prefix affinity_hit_value_row
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/train_affinity_hit_value_model.py \
+  --split-mode ligand \
+  --output-prefix affinity_hit_value_ligand_holdout
+```
+
+Current compact dataset:
+
+```text
+rows:                         214,842
+supported rows:                 2,862
+unsupported / unlabeled rows: 211,980
+ligand affinity lists:             665
+```
+
+Raw rank cutoffs are weak: top 20 captures only 55 / 2,721 ranked Yamanishi
+known positives (2.0%). But a learned rank/context value score is strongly
+enriched. In a ligand-held-out split, the best rank-only model reaches
+PR-AUC 0.497 versus a 1.0% baseline support rate; the top 0.5% of scored hits
+are 61.7% supported, and the top 1.0% are 53.0% supported.
+
 The expanded no-affinity table can be rebuilt with:
 
 ```bash
