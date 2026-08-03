@@ -1,0 +1,27 @@
+{
+  "training_dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "output": "results/annotated_affinity_targets_cid10917.csv",
+  "summary_output": "results/annotated_affinity_target_summary_cid10917.csv",
+  "model": "hist_gradient_boosting",
+  "calibrate": true,
+  "training_prior": 0.013321417599910632,
+  "deployment_prior": 0.0005832488960659434,
+  "feature_columns": [
+    "affinity",
+    "rank_1_based",
+    "rank_percentile",
+    "reverse_rank_percentile",
+    "affinity_zscore_within_ligand",
+    "affinity_robust_zscore_within_ligand",
+    "affinity_gap_to_next_weaker",
+    "affinity_gap_to_previous_stronger",
+    "total_ranked_uniprots",
+    "ligand_yamanishi_degree_any",
+    "target_yamanishi_degree_any",
+    "target_in_yamanishi_universe",
+    "target_in_bindingdb_universe"
+  ],
+  "threshold": 0.8,
+  "ligands_scored": 1,
+  "rows_scored": 7482
+}

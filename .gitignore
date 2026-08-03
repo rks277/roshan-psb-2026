@@ -3,3 +3,5 @@ __pycache__/
 *.py[cod]
 data/processed/affinity_hit_value_dataset.csv
 data/processed/affinity_hit_value_dataset_wide.csv
+results/annotated_affinity_targets.csv
+results/annotated_affinity_targets_prior_*.csv

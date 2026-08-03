@@ -1,0 +1,2 @@
+pubchem_cid,ligand_title,ranked_uniprots,score_threshold,predicted_targets_at_threshold,expected_supported_targets_at_threshold,known_yamanishi_targets_in_affinity_file,known_yamanishi_targets_recovered_at_threshold,known_yamanishi_targets_missed_at_threshold,top_target_likelihood
+10917,(-)-Carnitine,7482,0.8,0,0,1,0,1,0.05356750360796738
