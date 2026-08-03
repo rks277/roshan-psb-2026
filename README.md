@@ -279,6 +279,14 @@ physicochemical descriptors, MACCS fingerprints, and target length/mass/degree.
 It reaches a 56.9% known-support rate in the top 1.0% of scored held-out hits,
 versus a 1.0% baseline support rate.
 
+Important ablation: removing label-prior/context features
+(`ligand_yamanishi_degree_any`, `target_yamanishi_degree_any`,
+`target_in_yamanishi_universe`, `target_in_bindingdb_universe`) drops the best
+ligand-held-out PR-AUC to 0.176. The clean rank + PubChem + MACCS + target-basic
+model still enriches the top 1.0% of held-out hits to 23.0% known-supported
+versus a 1.0% baseline, but the earlier larger enrichment is partly driven by
+dataset-prior features rather than direct ligand-protein compatibility.
+
 To join chemistry/protein features at training time without materializing a
 multi-GB affinity-hit CSV:
 

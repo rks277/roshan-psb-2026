@@ -21,7 +21,8 @@ combines affinity-rank context, ligand chemistry, and target biology, the top
 shortlist becomes strongly enriched for known Yamanishi/BindingDB-supported
 pairs.
 
-Key result on ligand-held-out evaluation:
+Initial key result on ligand-held-out evaluation, using affinity/rank features
+plus label-context prior features:
 
 ```text
 baseline known-support rate:        1.0%
@@ -33,6 +34,14 @@ top 1.0% by model reranking:        56.9% known-supported
 
 The current model should be interpreted as a prioritization/reranking tool, not
 as a final proof that a pair binds.
+
+Important update: we ran an ablation removing the label-context prior features
+(`ligand_yamanishi_degree_any`, `target_yamanishi_degree_any`,
+`target_in_yamanishi_universe`, and `target_in_bindingdb_universe`). After that
+removal, the model is much weaker but still enriched above baseline. The cleaner
+chemistry + biology model reaches PR-AUC `0.176`, with the top 1.0% of scored
+held-out hits at `23.0%` known-supported versus the `1.0%` baseline. This is the
+more defensible estimate of signal not driven by dataset-prior features.
 
 ## The Most Useful Visuals
 
@@ -187,7 +196,7 @@ Code and data:
 
 ## Point 5: What Features Does the Reranking Model Use?
 
-The best current model uses:
+The initial best model used:
 
 ### Affinity/rank context
 
@@ -219,6 +228,17 @@ The best current model uses:
 We deliberately join chemistry/protein features at training time instead of
 materializing a multi-GB wide CSV.
 
+We then ran a clean ablation that removes the four label-context prior features:
+
+- `ligand_yamanishi_degree_any`
+- `target_yamanishi_degree_any`
+- `target_in_yamanishi_universe`
+- `target_in_bindingdb_universe`
+
+That ablation is important because those four features can encode dataset
+popularity. They help prioritize rows resembling already-labeled biology, but
+they are not direct ligand-protein compatibility evidence.
+
 Code:
 
 - [train_affinity_hit_value_model.py](../scripts/train_affinity_hit_value_model.py)
@@ -226,7 +246,7 @@ Code:
 
 ## Point 6: What Model Did We Train and How Well Did It Work?
 
-The best current chemistry + biology reranking model is:
+The initial chemistry + biology reranking model was:
 
 ```text
 feature set: rank + PubChem + MACCS + target basic
@@ -247,6 +267,26 @@ Metrics:
 - [affinity_hit_value_maccs_biology_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_maccs_biology_ligand_holdout_model_metrics.csv)
 - [affinity_hit_value_maccs_biology_ligand_holdout_enrichment.csv](../results/affinity_hit_value_maccs_biology_ligand_holdout_enrichment.csv)
 - [affinity_hit_value_maccs_biology_ligand_holdout_model_manifest.json](../results/affinity_hit_value_maccs_biology_ligand_holdout_model_manifest.json)
+
+Clean ablation result, after removing label-prior features:
+
+```text
+feature set: clean rank + PubChem + MACCS + target basic
+classifier: Hist Gradient Boosting
+split: ligand-held-out
+features: 208
+ROC-AUC: 0.890
+PR-AUC: 0.176
+baseline held-out support rate: 1.0%
+top 0.5% known-support rate: 32.5%
+top 1.0% known-support rate: 23.0%
+```
+
+Clean-ablation files:
+
+- [affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv](../results/affinity_hit_value_clean_ablation_ligand_holdout_model_metrics.csv)
+- [affinity_hit_value_clean_ablation_ligand_holdout_enrichment.csv](../results/affinity_hit_value_clean_ablation_ligand_holdout_enrichment.csv)
+- [affinity_hit_value_clean_ablation_ligand_holdout_model_manifest.json](../results/affinity_hit_value_clean_ablation_ligand_holdout_model_manifest.json)
 
 ## Point 7: How Should We Choose Good Affinity Pairs?
 

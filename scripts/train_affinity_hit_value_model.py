@@ -34,8 +34,24 @@ from build_affinity_hit_value_dataset import (
 )
 from build_no_affinity_dataset import load_maccs_features, load_morgan_features, load_target_sequence_features
 
+LABEL_PRIOR_FEATURES = [
+    "ligand_yamanishi_degree_any",
+    "target_yamanishi_degree_any",
+    "target_in_yamanishi_universe",
+    "target_in_bindingdb_universe",
+]
+CLEAN_RANK_FEATURES = [column for column in RANK_FEATURES if column not in LABEL_PRIOR_FEATURES]
+
 FEATURE_SETS = {
     "rank_only": RANK_FEATURES,
+    "clean_rank_only": CLEAN_RANK_FEATURES,
+    "clean_rank_plus_basic_context": CLEAN_RANK_FEATURES + LIGAND_OUTPUT_FEATURES + TARGET_BASIC_OUTPUT_FEATURES,
+    "clean_rank_plus_maccs_basic_target": (
+        CLEAN_RANK_FEATURES
+        + LIGAND_OUTPUT_FEATURES
+        + MACCS_OUTPUT_FEATURES
+        + TARGET_BASIC_OUTPUT_FEATURES
+    ),
     "rank_plus_basic_context": RANK_FEATURES + LIGAND_OUTPUT_FEATURES + TARGET_BASIC_OUTPUT_FEATURES,
     "rank_plus_maccs_basic_target": (
         RANK_FEATURES
@@ -237,6 +253,7 @@ def main() -> None:
     parser.add_argument("--output-prefix", default="affinity_hit_value")
     parser.add_argument("--feature-sets", nargs="+", choices=sorted(FEATURE_SETS), default=None)
     parser.add_argument("--classifiers", nargs="+", choices=sorted(make_models(42)), default=None)
+    parser.add_argument("--skip-scored-output", action="store_true")
     parser.add_argument(
         "--augment-feature-maps",
         action="store_true",
@@ -335,30 +352,31 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(enrichment)
 
+    scored_path = args.results_dir / f"{args.output_prefix}_scored_sample.csv"
     assert best is not None
     best_feature_set, best_model_name, best_model, best_columns, X_best, _ = best
-    all_scores = scores(best_model, X_best)
-    scored_path = args.results_dir / f"{args.output_prefix}_scored_sample.csv"
-    scored_rows = []
-    for row, score in zip(rows, all_scores):
-        scored_rows.append(
-            {
-                "pubchem_cid": row["pubchem_cid"],
-                "uniprot_id": row["uniprot_id"],
-                "label_supported": row["label_supported"],
-                "label_yamanishi": row["label_yamanishi"],
-                "label_bindingdb": row["label_bindingdb"],
-                "affinity": row["affinity"],
-                "rank_1_based": row["rank_1_based"],
-                "rank_percentile": row["rank_percentile"],
-                "hit_value_score": score,
-            }
-        )
-    scored_rows.sort(key=lambda row: float(row["hit_value_score"]), reverse=True)
-    with scored_path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(scored_rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(scored_rows)
+    if not args.skip_scored_output:
+        all_scores = scores(best_model, X_best)
+        scored_rows = []
+        for row, score in zip(rows, all_scores):
+            scored_rows.append(
+                {
+                    "pubchem_cid": row["pubchem_cid"],
+                    "uniprot_id": row["uniprot_id"],
+                    "label_supported": row["label_supported"],
+                    "label_yamanishi": row["label_yamanishi"],
+                    "label_bindingdb": row["label_bindingdb"],
+                    "affinity": row["affinity"],
+                    "rank_1_based": row["rank_1_based"],
+                    "rank_percentile": row["rank_percentile"],
+                    "hit_value_score": score,
+                }
+            )
+        scored_rows.sort(key=lambda row: float(row["hit_value_score"]), reverse=True)
+        with scored_path.open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(scored_rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(scored_rows)
 
     manifest_path = args.results_dir / f"{args.output_prefix}_model_manifest.json"
     manifest_path.write_text(
@@ -373,6 +391,7 @@ def main() -> None:
                 "split_mode": args.split_mode,
                 "augment_feature_maps": args.augment_feature_maps,
                 "calibrate": args.calibrate,
+                "skip_scored_output": args.skip_scored_output,
                 "best_feature_set": best_feature_set,
                 "best_classifier": best_model_name,
                 "best_pr_auc": best_score,
@@ -384,7 +403,8 @@ def main() -> None:
 
     print(f"Wrote {metrics_path}")
     print(f"Wrote {enrichment_path}")
-    print(f"Wrote {scored_path}")
+    if not args.skip_scored_output:
+        print(f"Wrote {scored_path}")
     print(f"Wrote {manifest_path}")
     for row in sorted(metrics, key=lambda item: item["PR AUC"], reverse=True)[:8]:
         print(
