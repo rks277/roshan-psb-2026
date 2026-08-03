@@ -265,10 +265,31 @@ ligand affinity lists:             665
 ```
 
 Raw rank cutoffs are weak: top 20 captures only 55 / 2,721 ranked Yamanishi
-known positives (2.0%). But a learned rank/context value score is strongly
-enriched. In a ligand-held-out split, the best rank-only model reaches
-PR-AUC 0.497 versus a 1.0% baseline support rate; the top 0.5% of scored hits
-are 61.7% supported, and the top 1.0% are 53.0% supported.
+known positives (2.0%). But a learned value score is strongly enriched.
+In ligand-held-out splits:
+
+```text
+rank-only Extra Trees:                    PR-AUC 0.497
+rank + PubChem + target length/mass/deg:  PR-AUC 0.534
+rank + PubChem + MACCS + target basic:    PR-AUC 0.539
+```
+
+The best current chemistry + biology model uses rank features, PubChem
+physicochemical descriptors, MACCS fingerprints, and target length/mass/degree.
+It reaches a 56.9% known-support rate in the top 1.0% of scored held-out hits,
+versus a 1.0% baseline support rate.
+
+To join chemistry/protein features at training time without materializing a
+multi-GB affinity-hit CSV:
+
+```bash
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/train_affinity_hit_value_model.py \
+  --augment-feature-maps \
+  --split-mode ligand \
+  --output-prefix affinity_hit_value_maccs_biology_ligand_holdout \
+  --feature-sets rank_plus_maccs_basic_target \
+  --classifiers "Logistic Regression" "Hist Gradient Boosting"
+```
 
 The expanded no-affinity table can be rebuilt with:
 

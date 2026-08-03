@@ -23,6 +23,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from build_dataset import DatasetBuilder  # noqa: E402
 from build_affinity_hit_value_dataset import (
     LIGAND_OUTPUT_FEATURES,
     MACCS_OUTPUT_FEATURES,
@@ -31,10 +32,17 @@ from build_affinity_hit_value_dataset import (
     TARGET_BASIC_OUTPUT_FEATURES,
     TARGET_SEQUENCE_OUTPUT_FEATURES,
 )
+from build_no_affinity_dataset import load_maccs_features, load_morgan_features, load_target_sequence_features
 
 FEATURE_SETS = {
     "rank_only": RANK_FEATURES,
     "rank_plus_basic_context": RANK_FEATURES + LIGAND_OUTPUT_FEATURES + TARGET_BASIC_OUTPUT_FEATURES,
+    "rank_plus_maccs_basic_target": (
+        RANK_FEATURES
+        + LIGAND_OUTPUT_FEATURES
+        + MACCS_OUTPUT_FEATURES
+        + TARGET_BASIC_OUTPUT_FEATURES
+    ),
     "rank_plus_maccs_morgan_target": (
         RANK_FEATURES
         + LIGAND_OUTPUT_FEATURES
@@ -46,17 +54,68 @@ FEATURE_SETS = {
 }
 
 
-def numeric_matrix(rows: list[dict[str, str]], columns: list[str]) -> np.ndarray:
+def load_feature_maps(data_dir: Path, seed: int) -> dict[str, dict[str, dict[str, str]]]:
+    builder = DatasetBuilder(data_dir, seed=seed)
+    return {
+        "ligand": builder.ligands,
+        "maccs": load_maccs_features(data_dir),
+        "morgan": load_morgan_features(data_dir),
+        "target": builder.target_features,
+        "target_sequence": load_target_sequence_features(data_dir),
+    }
+
+
+def augmented_value(
+    row: dict[str, str],
+    column: str,
+    feature_maps: dict[str, dict[str, dict[str, str]]] | None,
+) -> str:
+    value = row.get(column, "")
+    if value or feature_maps is None:
+        return value
+    if column.startswith("ligand_"):
+        cid = row["pubchem_cid"]
+        raw_column = column.removeprefix("ligand_")
+        for group in ("ligand", "maccs", "morgan"):
+            value = feature_maps[group].get(cid, {}).get(raw_column, "")
+            if value:
+                return value
+    if column.startswith("target_"):
+        uniprot = row["uniprot_id"]
+        raw_column = column.removeprefix("target_")
+        for group in ("target", "target_sequence"):
+            value = feature_maps[group].get(uniprot, {}).get(raw_column, "")
+            if value:
+                return value
+    return ""
+
+
+def numeric_matrix(
+    rows: list[dict[str, str]],
+    columns: list[str],
+    feature_maps: dict[str, dict[str, dict[str, str]]] | None = None,
+) -> np.ndarray:
     matrix = []
     for row in rows:
         values = []
         for column in columns:
             try:
-                values.append(float(row.get(column, "")))
+                values.append(float(augmented_value(row, column, feature_maps)))
             except (TypeError, ValueError):
                 values.append(np.nan)
         matrix.append(values)
     return np.asarray(matrix, dtype=float)
+
+
+def feature_set_available(
+    available_columns: set[str],
+    columns: list[str],
+    feature_maps: dict[str, dict[str, dict[str, str]]] | None,
+) -> tuple[bool, int]:
+    if feature_maps is not None:
+        return True, 0
+    missing_columns = [column for column in columns if column not in available_columns]
+    return len(missing_columns) == 0, len(missing_columns)
 
 
 def make_models(seed: int) -> dict[str, object]:
@@ -103,6 +162,16 @@ def make_models(seed: int) -> dict[str, object]:
             ]
         ),
     }
+
+
+def selected_items(items: dict[str, object], selected: list[str] | None) -> dict[str, object]:
+    if not selected:
+        return items
+    wanted = set(selected)
+    missing = sorted(wanted - set(items))
+    if missing:
+        raise SystemExit(f"Unknown selection(s): {', '.join(missing)}")
+    return {name: item for name, item in items.items() if name in wanted}
 
 
 def scores(model: object, X: np.ndarray) -> np.ndarray:
@@ -166,6 +235,14 @@ def main() -> None:
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--split-mode", choices=["row", "ligand"], default="row")
     parser.add_argument("--output-prefix", default="affinity_hit_value")
+    parser.add_argument("--feature-sets", nargs="+", choices=sorted(FEATURE_SETS), default=None)
+    parser.add_argument("--classifiers", nargs="+", choices=sorted(make_models(42)), default=None)
+    parser.add_argument(
+        "--augment-feature-maps",
+        action="store_true",
+        help="Join ligand chemistry and protein biology features from data/raw and data/processed at training time.",
+    )
+    parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--calibrate", action="store_true")
     args = parser.parse_args()
 
@@ -193,20 +270,21 @@ def main() -> None:
         )
 
     available_columns = set(rows[0])
+    feature_maps = load_feature_maps(args.data_dir, args.seed) if args.augment_feature_maps else None
     metrics = []
     enrichment = []
     best = None
     best_score = -1.0
-    for feature_set_name, columns in FEATURE_SETS.items():
-        missing_columns = [column for column in columns if column not in available_columns]
-        if missing_columns:
-            print(
-                f"Skipping {feature_set_name}: {len(missing_columns)} feature columns are absent from {args.dataset}"
-            )
+    feature_sets = selected_items(FEATURE_SETS, args.feature_sets)
+    models = selected_items(make_models(args.seed), args.classifiers)
+    for feature_set_name, columns in feature_sets.items():
+        is_available, missing_count = feature_set_available(available_columns, columns, feature_maps)
+        if not is_available:
+            print(f"Skipping {feature_set_name}: {missing_count} feature columns are absent from {args.dataset}")
             continue
-        X = numeric_matrix(rows, columns)
+        X = numeric_matrix(rows, columns, feature_maps)
         X_train, X_test = X[train_idx], X[test_idx]
-        for model_name, model in make_models(args.seed).items():
+        for model_name, model in models.items():
             fitted = model
             if args.calibrate:
                 fitted = CalibratedClassifierCV(model, method="isotonic", cv=3)
@@ -293,6 +371,7 @@ def main() -> None:
                 "seed": args.seed,
                 "test_size": args.test_size,
                 "split_mode": args.split_mode,
+                "augment_feature_maps": args.augment_feature_maps,
                 "calibrate": args.calibrate,
                 "best_feature_set": best_feature_set,
                 "best_classifier": best_model_name,
