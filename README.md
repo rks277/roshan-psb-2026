@@ -295,10 +295,14 @@ Reranking figures can be regenerated with:
 
 ```bash
 /Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/plot_affinity_reranking.py
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/plot_affinity_reranking_story.py
 ```
 
 Outputs:
 
+- `results/plots/affinity_reranking_rescue_ribbons.png`
+- `results/plots/affinity_reranking_priority_funnel.png`
+- `results/plots/affinity_reranking_rescue_map.png`
 - `results/plots/affinity_reranking_enrichment_curve.png`
 - `results/plots/affinity_reranking_top_fraction_bars.png`
 - `results/plots/affinity_reranking_supported_scatter.png`
