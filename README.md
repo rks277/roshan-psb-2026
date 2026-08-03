@@ -291,6 +291,19 @@ multi-GB affinity-hit CSV:
   --classifiers "Logistic Regression" "Hist Gradient Boosting"
 ```
 
+Reranking figures can be regenerated with:
+
+```bash
+/Users/roshanklein-seetharaman/.pyenv/shims/python3 scripts/plot_affinity_reranking.py
+```
+
+Outputs:
+
+- `results/plots/affinity_reranking_enrichment_curve.png`
+- `results/plots/affinity_reranking_top_fraction_bars.png`
+- `results/plots/affinity_reranking_supported_scatter.png`
+- `results/plots/affinity_reranking_ligand_examples.png`
+
 The expanded no-affinity table can be rebuilt with:
 
 ```bash
