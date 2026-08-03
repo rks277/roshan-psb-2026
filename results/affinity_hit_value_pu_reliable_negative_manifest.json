@@ -1,0 +1,22 @@
+{
+  "dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "feature_set": "clean_rank_plus_maccs_morgan_target",
+  "feature_count": 1663,
+  "method": "two-step PU reliable negatives",
+  "ratios_tested": [
+    5,
+    10,
+    20,
+    40
+  ],
+  "selected_reliable_negative_ratio": 40,
+  "selected_inner_validation_pr_auc": 0.22150665633849176,
+  "outer_test_pr_auc": 0.15315113551345733,
+  "outer_test_roc_auc": 0.9404713156447543,
+  "outer_test_top_1_percent_support": 0.2009685230024213,
+  "outer_train_reliable_negatives": 97640,
+  "outer_train_labeled_positives": 2441,
+  "seed": 42,
+  "outer_test_size": 0.2,
+  "inner_validation_size": 0.25
+}

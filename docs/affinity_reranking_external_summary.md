@@ -323,7 +323,7 @@ outer test PR-AUC after select:  0.391
 ```
 
 Because unsupported affinity hits are not confirmed negatives, we also explored
-formal positive-unlabeled (PU) learning. Two approaches were tested:
+formal positive-unlabeled (PU) learning. Three approaches were tested:
 
 ```text
 nnPU MLP, selected class prior 0.10:
@@ -333,9 +333,13 @@ nnPU MLP, selected class prior 0.10:
 two-step PU HGB, reliable-negative fraction 0.40:
   outer test PR-AUC: 0.137
   top 1.0% known-support rate: 17.4%
+
+two-step PU HGB, reliable-negative ratio 40 per positive:
+  outer test PR-AUC: 0.153
+  top 1.0% known-support rate: 20.1%
 ```
 
-Both underperformed the clean supervised HGB reranker:
+All three underperformed the clean supervised HGB reranker:
 
 ```text
 clean supervised HGB:
@@ -348,7 +352,9 @@ labels, but these first formal PU implementations are not yet the best
 operational rerankers. For the current paper-quality result, we should describe
 the task as positive-unlabeled prioritization but use the clean supervised HGB
 as the empirical reranking model, while reporting PU baselines as negative
-methodological controls.
+methodological controls. The reliable-negative ratio variant is the strongest
+PU baseline so far, but it is still substantially below the clean supervised
+model.
 
 Clean-ablation files:
 
@@ -364,6 +370,8 @@ Clean-ablation files:
 - [affinity_hit_value_pu_clean_manifest.json](../results/affinity_hit_value_pu_clean_manifest.json)
 - [affinity_hit_value_twostep_pu_clean_metrics.csv](../results/affinity_hit_value_twostep_pu_clean_metrics.csv)
 - [affinity_hit_value_twostep_pu_clean_manifest.json](../results/affinity_hit_value_twostep_pu_clean_manifest.json)
+- [affinity_hit_value_pu_reliable_negative_metrics.csv](../results/affinity_hit_value_pu_reliable_negative_metrics.csv)
+- [affinity_hit_value_pu_reliable_negative_manifest.json](../results/affinity_hit_value_pu_reliable_negative_manifest.json)
 
 ## Point 7: How Should We Choose Good Affinity Pairs?
 
