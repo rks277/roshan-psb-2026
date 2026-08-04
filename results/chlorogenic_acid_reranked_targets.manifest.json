@@ -1,0 +1,12 @@
+{
+  "cid": "1794427",
+  "ligand_title": "ChlorogenicAcid",
+  "training_dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "feature_set": "clean_rank_plus_maccs_morgan_target",
+  "feature_count": 1663,
+  "model": "HistGradientBoostingClassifier(random_state=42)",
+  "training_rows": 214842,
+  "training_supported_rows": 2862,
+  "ranked_rows_exported": 7527,
+  "output": "results/chlorogenic_acid_reranked_targets.csv"
+}

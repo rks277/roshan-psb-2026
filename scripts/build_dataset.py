@@ -274,6 +274,10 @@ class DatasetBuilder:
                 match = re.search(r"\((\d+)\)(?:_2D|_3D|\.pdb|$)", Path(name).name)
                 if match:
                     out[match.group(1)].append(name)
+        for path in self.data_dir.glob("CID_*_*.pdb_affinities.txt"):
+            match = re.match(r"CID_(\d+)_", path.name)
+            if match:
+                out[match.group(1)].append(str(path))
         return {key: sorted(value) for key, value in out.items()}
 
     def _compute_label_degrees(self) -> tuple[dict[tuple[str, str], int], dict[tuple[str, str], int]]:
@@ -296,14 +300,25 @@ class DatasetBuilder:
 
         values: dict[str, float] = {}
         # Prefer the first deterministically sorted file for duplicated 2D/3D ligand variants.
-        with ZipFile(self.data_dir / "GoldStandardAffinities.zip") as zf:
-            with zf.open(files[0]) as handle:
-                for raw_line in handle:
-                    parsed = parse_affinity_line(raw_line.decode("utf-8", errors="replace"))
+        selected_file = files[0]
+        selected_path = Path(selected_file)
+        if selected_path.exists():
+            with selected_path.open() as handle:
+                for line in handle:
+                    parsed = parse_affinity_line(line)
                     if parsed is None:
                         continue
                     pdb_id, affinity = parsed
                     values[pdb_id] = affinity
+        else:
+            with ZipFile(self.data_dir / "GoldStandardAffinities.zip") as zf:
+                with zf.open(selected_file) as handle:
+                    for raw_line in handle:
+                        parsed = parse_affinity_line(raw_line.decode("utf-8", errors="replace"))
+                        if parsed is None:
+                            continue
+                        pdb_id, affinity = parsed
+                        values[pdb_id] = affinity
         self._affinity_cache[cid] = values
         return values
 
