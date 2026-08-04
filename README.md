@@ -427,6 +427,51 @@ These similarity features are informative for ranking but are poorly calibrated
 at the default `0.5` decision threshold, so they do not improve raw balanced
 accuracy in the current classifier setup.
 
+### Balanced Classifier With The Clean Reranking Feature Set
+
+We also retrained the original balanced 0/1 classifier using the exact clean
+reranking features: affinity/rank context, PubChem descriptors, MACCS,
+Morgan/ECFP fingerprints, and protein biology features, while excluding the
+four label-prior/context features. Because this feature set requires affinity
+rank context, this experiment is limited to positives represented in the
+affinity-hit table rather than all 5,127 Yamanishi positives.
+
+```text
+Yamanishi-only labels, 1:1 sampled unlabeled negatives:
+  rows: 5,438
+  positives: 2,719
+  negatives: 2,719
+  features: 1,663
+
+best row-stratified model:
+  Hist Gradient Boosting accuracy 0.928, F1 0.928, ROC-AUC 0.978, PR-AUC 0.979
+
+best ligand-held-out model:
+  Random Forest accuracy 0.942, F1 0.945, ROC-AUC 0.976, PR-AUC 0.977
+
+Any-supported labels (Yamanishi or BindingDB), 1:1 sampled unlabeled negatives:
+  rows: 5,724
+  positives: 2,862
+  negatives: 2,862
+
+best row-stratified model:
+  Extra Trees accuracy 0.923, F1 0.921, ROC-AUC 0.976, PR-AUC 0.979
+
+best ligand-held-out model:
+  Random Forest accuracy 0.918, F1 0.914, ROC-AUC 0.969, PR-AUC 0.969
+```
+
+This shows that the clean feature set can reach the 90%+ balanced-classifier
+range when affinity/rank context is available. The result should be reported
+separately from the all-Yamanishi no-affinity classifier because it has lower
+positive-pair coverage.
+
+Files:
+
+- `scripts/train_balanced_clean_feature_classifier.py`
+- `results/balanced_clean_feature_classifier_metrics.csv`
+- `results/balanced_clean_feature_classifier_manifest.json`
+
 ### Balanced Accuracy Gap Audit
 
 To audit why the balanced 1:1 accuracy is below stronger literature reports,
