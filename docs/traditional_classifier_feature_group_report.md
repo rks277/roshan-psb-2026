@@ -27,6 +27,61 @@ Balanced dataset:
 
 This is not the full 5,127-pair Yamanishi benchmark because these experiments require affinity/rank context. The classifier only includes Yamanishi positives that are represented in the affinity-hit table.
 
+## Raw Affinity Ranking Analysis
+
+The affinity files should not be interpreted as simple "rank 1 equals binder" predictions. Known Yamanishi targets are often buried far down the raw docking list.
+
+Among Yamanishi positives that could be mapped into the affinity files:
+
+| Quantity | Value |
+|---|---:|
+| Ranked known positives | 2,721 |
+| Mean known-target rank | 1,896.6 |
+| Median known-target rank | 1,325 |
+| 75th percentile rank | 2,770 |
+| 90th percentile rank | 4,397 |
+| 95th percentile rank | 5,727 |
+| Maximum known-target rank | 7,528 |
+| Known target ranked first | 4 pairs |
+| Known positives with at least one higher-ranked target | 2,717 |
+
+Raw-rank recall is low at practical cutoffs:
+
+| Raw rank cutoff | Known positives captured | Known-positive recall |
+|---:|---:|---:|
+| 1 | 4 | 0.15% |
+| 3 | 16 | 0.59% |
+| 5 | 22 | 0.81% |
+| 10 | 35 | 1.29% |
+| 20 | 55 | 2.02% |
+| 50 | 100 | 3.68% |
+| 100 | 160 | 5.88% |
+| 200 | 290 | 10.66% |
+
+Targets ranked above known positives are mostly unsupported by the current Yamanishi/BindingDB labels, but they should not automatically be called true false positives because many may simply be untested.
+
+| Raw cutoff | Higher-ranked calls before known positive | BindingDB-supported fraction among higher-ranked calls | Unsupported fraction among higher-ranked calls |
+|---:|---:|---:|---:|
+| 10 | 138 | 1.45% | 92.75% |
+| 20 | 432 | 0.46% | 96.99% |
+| 50 | 1,997 | 0.10% | 98.65% |
+| 100 | 6,637 | 0.15% | 98.95% |
+| 200 | 25,908 | 0.06% | 99.32% |
+
+Interpretation:
+
+- Raw affinity rank alone is weak for direct target calling.
+- The affinity files are still useful as candidate generators.
+- The right framing is positive-unlabeled reranking: unsupported high-ranking targets are candidate novel interactions, not confirmed negatives.
+- This explains why the affinity-only classifier below performs much worse than chemistry/protein feature models.
+
+Raw ranking files:
+
+- [`results/affinity_rank_raw_summary.json`](../results/affinity_rank_raw_summary.json)
+- [`results/affinity_rank_raw_cutoff_summary.csv`](../results/affinity_rank_raw_cutoff_summary.csv)
+- [`results/affinity_rank_raw_known_positive_positions.csv`](../results/affinity_rank_raw_known_positive_positions.csv)
+- [`scripts/analyze_affinity_rank_positions.py`](../scripts/analyze_affinity_rank_positions.py)
+
 ## 1. Feature List
 
 The clean feature universe excludes label-prior/context features that encode known-positive label-set membership:
