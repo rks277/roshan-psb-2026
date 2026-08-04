@@ -6,12 +6,34 @@
   "negative_rows": 2719,
   "seed": 42,
   "split": {
-    "train_rows": 3262,
-    "validation_rows": 1088,
-    "test_rows": 1088,
     "test_size": 0.2,
     "validation_size": 0.2,
-    "split_mode": "row-stratified train/validation/test"
+    "split_modes": {
+      "row_stratified": {
+        "train_rows": 3262,
+        "validation_rows": 1088,
+        "test_rows": 1088,
+        "train_positives": 1631,
+        "validation_positives": 544,
+        "test_positives": 544
+      },
+      "ligand_held_out": {
+        "train_rows": 3331,
+        "validation_rows": 955,
+        "test_rows": 1152,
+        "train_positives": 1666,
+        "validation_positives": 435,
+        "test_positives": 618
+      },
+      "target_held_out": {
+        "train_rows": 3237,
+        "validation_rows": 1066,
+        "test_rows": 1135,
+        "train_positives": 1603,
+        "validation_positives": 528,
+        "test_positives": 588
+      }
+    }
   },
   "feature_groups": {
     "affinity_group_only": 9,

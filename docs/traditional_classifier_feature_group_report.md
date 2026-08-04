@@ -20,10 +20,15 @@ Balanced dataset:
 | Positive rows | 2,719 |
 | Negative/unlabeled sampled rows | 2,719 |
 | Random seed | 42 |
-| Split mode | row-stratified train/validation/test |
-| Train rows | 3,262 |
-| Validation rows | 1,088 |
-| Test rows | 1,088 |
+| Split modes | row-stratified, ligand-held-out, target-held-out |
+
+Split sizes:
+
+| Split mode | Train rows | Validation rows | Test rows | Train positives | Validation positives | Test positives |
+|---|---:|---:|---:|---:|---:|---:|
+| Row-stratified | 3,262 | 1,088 | 1,088 | 1,631 | 544 | 544 |
+| Ligand-held-out | 3,331 | 955 | 1,152 | 1,666 | 435 | 618 |
+| Target-held-out | 3,237 | 1,066 | 1,135 | 1,603 | 528 | 588 |
 
 This is not the full 5,127-pair Yamanishi benchmark because these experiments require affinity/rank context. The classifier only includes Yamanishi positives that are represented in the affinity-hit table.
 
@@ -115,11 +120,13 @@ Feature set: `affinity_group_only`
 
 Features used: the 9 affinity/rank context features only.
 
-Best test-set model:
+Best test-set models:
 
-| Model | Test accuracy | Test F1 | Test ROC-AUC | Test PR-AUC |
-|---|---:|---:|---:|---:|
-| Random Forest | 0.716 | 0.728 | 0.777 | 0.765 |
+| Split mode | Model | Test accuracy | Test F1 | Test ROC-AUC | Test PR-AUC |
+|---|---|---:|---:|---:|---:|
+| Row-stratified | Random Forest | 0.716 | 0.728 | 0.777 | 0.765 |
+| Ligand-held-out | SVM | 0.704 | 0.728 | 0.737 | 0.719 |
+| Target-held-out | Hist Gradient Boosting | 0.732 | 0.750 | 0.796 | 0.782 |
 
 Interpretation: affinity/rank context alone is informative but not strong enough to reproduce the high traditional classifier accuracy.
 
@@ -129,11 +136,13 @@ Feature set: `all_features_minus_affinity_group`
 
 Features used: PubChem descriptors, MACCS, Morgan/ECFP, and protein biology features. Affinity/rank context features were excluded.
 
-Best test-set model:
+Best test-set models:
 
-| Model | Test accuracy | Test F1 | Test ROC-AUC | Test PR-AUC |
-|---|---:|---:|---:|---:|
-| Extra Trees | 0.917 | 0.915 | 0.972 | 0.975 |
+| Split mode | Model | Test accuracy | Test F1 | Test ROC-AUC | Test PR-AUC |
+|---|---|---:|---:|---:|---:|
+| Row-stratified | Extra Trees | 0.917 | 0.915 | 0.972 | 0.975 |
+| Ligand-held-out | Random Forest | 0.929 | 0.931 | 0.970 | 0.974 |
+| Target-held-out | SVM | 0.789 | 0.780 | 0.875 | 0.870 |
 
 Interpretation: ligand chemistry plus protein biology carries most of the traditional classifier signal.
 
@@ -143,17 +152,19 @@ Feature set: `all_features`
 
 Features used: affinity/rank context, PubChem descriptors, MACCS, Morgan/ECFP, and protein biology features.
 
-Best test-set model:
+Best test-set models:
 
-| Model | Test accuracy | Test F1 | Test ROC-AUC | Test PR-AUC |
-|---|---:|---:|---:|---:|
-| Extra Trees | 0.915 | 0.913 | 0.973 | 0.976 |
+| Split mode | Model | Test accuracy | Test F1 | Test ROC-AUC | Test PR-AUC |
+|---|---|---:|---:|---:|---:|
+| Row-stratified | Extra Trees | 0.915 | 0.913 | 0.973 | 0.976 |
+| Ligand-held-out | Random Forest | 0.922 | 0.925 | 0.970 | 0.971 |
+| Target-held-out | SVM | 0.799 | 0.791 | 0.886 | 0.878 |
 
 Interpretation: all features also reach the 90%+ traditional classifier range. In this split, adding affinity features does not improve raw accuracy relative to chemistry/protein features alone, although ROC-AUC and PR-AUC are essentially tied.
 
 ## 5. Performance Metric Comparison
 
-Full train/validation/test table:
+The full train/validation/test table for every split mode is in [`results/traditional_clean_feature_group_classifier_metrics.csv`](../results/traditional_clean_feature_group_classifier_metrics.csv). The row-stratified table, which is most similar to the traditional 2025-style split, is shown below:
 
 | Feature set | Model | Features | Train Acc | Train F1 | Val Acc | Val F1 | Test Acc | Test F1 | Test ROC-AUC | Test PR-AUC |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -176,19 +187,27 @@ Full train/validation/test table:
 | all_features | SVM | 1,663 | 0.945 | 0.945 | 0.853 | 0.850 | 0.858 | 0.857 | 0.930 | 0.923 |
 | all_features | KNN | 1,663 | 0.805 | 0.816 | 0.694 | 0.719 | 0.726 | 0.749 | 0.790 | 0.748 |
 
-Best model per requested feature condition:
+Best model per requested feature condition and split:
 
-| Condition | Feature set | Best test model | Test Acc | Test F1 | Test ROC-AUC | Test PR-AUC |
-|---|---|---|---:|---:|---:|---:|
-| Affinities group only | `affinity_group_only` | Random Forest | 0.716 | 0.728 | 0.777 | 0.765 |
-| All features minus affinities group | `all_features_minus_affinity_group` | Extra Trees | 0.917 | 0.915 | 0.972 | 0.975 |
-| All features | `all_features` | Extra Trees | 0.915 | 0.913 | 0.973 | 0.976 |
+| Split mode | Condition | Feature set | Best test model | Test Acc | Test F1 | Test ROC-AUC | Test PR-AUC |
+|---|---|---|---|---:|---:|---:|---:|
+| Row-stratified | Affinities group only | `affinity_group_only` | Random Forest | 0.716 | 0.728 | 0.777 | 0.765 |
+| Row-stratified | All features minus affinities group | `all_features_minus_affinity_group` | Extra Trees | 0.917 | 0.915 | 0.972 | 0.975 |
+| Row-stratified | All features | `all_features` | Extra Trees | 0.915 | 0.913 | 0.973 | 0.976 |
+| Ligand-held-out | Affinities group only | `affinity_group_only` | SVM | 0.704 | 0.728 | 0.737 | 0.719 |
+| Ligand-held-out | All features minus affinities group | `all_features_minus_affinity_group` | Random Forest | 0.929 | 0.931 | 0.970 | 0.974 |
+| Ligand-held-out | All features | `all_features` | Random Forest | 0.922 | 0.925 | 0.970 | 0.971 |
+| Target-held-out | Affinities group only | `affinity_group_only` | Hist Gradient Boosting | 0.732 | 0.750 | 0.796 | 0.782 |
+| Target-held-out | All features minus affinities group | `all_features_minus_affinity_group` | SVM | 0.789 | 0.780 | 0.875 | 0.870 |
+| Target-held-out | All features | `all_features` | SVM | 0.799 | 0.791 | 0.886 | 0.878 |
 
-Takeaway: traditional 0/1 classifier accuracy now reaches the 90%+ range when ligand chemistry and protein biology features are included. Affinity/rank features alone are weaker. Adding affinity/rank features to the full chemistry/protein feature set does not improve test accuracy in this row-stratified traditional classifier experiment.
+Takeaway: traditional 0/1 classifier accuracy reaches the 90%+ range for row-stratified and ligand-held-out splits when ligand chemistry and protein biology features are included. Target-held-out performance is lower, which indicates that generalizing to unseen targets is harder. Affinity/rank features alone are weaker in all split modes.
 
 ### Did Affinity Information Help Each Model?
 
 This comparison asks whether adding the 9 affinity/rank-context features improved performance relative to the same model trained on all non-affinity features.
+
+Row-stratified:
 
 | Model | No-affinity test Acc | All-features test Acc | Delta Acc | No-affinity test F1 | All-features test F1 | Delta F1 | Did affinity help? |
 |---|---:|---:|---:|---:|---:|---:|---|
@@ -199,7 +218,29 @@ This comparison asks whether adding the 9 affinity/rank-context features improve
 | SVM | 0.858 | 0.858 | +0.001 | 0.856 | 0.857 | +0.001 | tied |
 | KNN | 0.722 | 0.726 | +0.004 | 0.747 | 0.749 | +0.003 | yes, small |
 
-Overall, affinity/rank information did not materially improve the traditional balanced classifier once ligand chemistry and protein biology features were included. The only model with a positive test-accuracy change was KNN, and the gain was small (`+0.004`). Extra Trees, the best model overall, performed slightly better without the affinity group by accuracy (`0.917` without affinity vs `0.915` with all features), while ROC-AUC and PR-AUC were essentially tied.
+Ligand-held-out:
+
+| Model | No-affinity test Acc | All-features test Acc | Delta Acc | No-affinity test F1 | All-features test F1 | Delta F1 | Did affinity help? |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Logistic Regression | 0.753 | 0.773 | +0.019 | 0.747 | 0.771 | +0.023 | yes |
+| Random Forest | 0.929 | 0.922 | -0.007 | 0.931 | 0.925 | -0.007 | no |
+| Extra Trees | 0.840 | 0.845 | +0.004 | 0.829 | 0.836 | +0.007 | yes |
+| Hist Gradient Boosting | 0.898 | 0.905 | +0.007 | 0.901 | 0.908 | +0.007 | yes |
+| SVM | 0.684 | 0.696 | +0.012 | 0.609 | 0.634 | +0.024 | yes |
+| KNN | 0.680 | 0.688 | +0.008 | 0.703 | 0.710 | +0.007 | yes |
+
+Target-held-out:
+
+| Model | No-affinity test Acc | All-features test Acc | Delta Acc | No-affinity test F1 | All-features test F1 | Delta F1 | Did affinity help? |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Logistic Regression | 0.717 | 0.722 | +0.005 | 0.705 | 0.711 | +0.006 | yes |
+| Random Forest | 0.625 | 0.667 | +0.042 | 0.444 | 0.540 | +0.096 | yes |
+| Extra Trees | 0.719 | 0.759 | +0.040 | 0.638 | 0.709 | +0.071 | yes |
+| Hist Gradient Boosting | 0.741 | 0.747 | +0.006 | 0.692 | 0.699 | +0.007 | yes |
+| SVM | 0.789 | 0.799 | +0.010 | 0.780 | 0.791 | +0.011 | yes |
+| KNN | 0.658 | 0.659 | +0.001 | 0.678 | 0.677 | -0.001 | tied |
+
+Overall: affinity/rank information does not materially help in the row-stratified split and does not improve the best ligand-held-out model. It helps more consistently in the target-held-out split, where generalizing to unseen targets is harder, but the absolute target-held-out accuracy remains below the row and ligand splits.
 
 ## Leakage And Overoptimism Check
 
@@ -227,12 +268,12 @@ Important caveat on `target_degree_up`: this is treated as a biological/network 
 
 There are still two protocol-level overoptimism risks:
 
-1. **Row-stratified splits can be optimistic.** The same ligand can appear in train, validation, and test rows paired with different targets. The same target can also appear across splits. With Morgan fingerprints and protein sequence features, the model may partially learn ligand/target identity patterns. This is not direct feature leakage, but it can inflate traditional classifier performance.
+1. **Row-stratified splits can be optimistic.** The same ligand can appear in train, validation, and test rows paired with different targets. The same target can also appear across splits. With Morgan fingerprints and protein sequence features, the model may partially learn ligand/target identity patterns. This is not direct feature leakage, but it can inflate traditional classifier performance. We therefore added ligand-held-out and target-held-out splits in this report.
 2. **Affinity context assumes a full docking list is available.** Features such as rank, percentile rank, affinity z-score, robust z-score, and local affinity gaps are computed from the full ligand-specific affinity list. This is valid for the intended reranking use case because a new ligand would have a full affinity file, but it should be described as target prioritization/reranking rather than isolated ligand-target prediction with no docking context.
 
 Suggested paper language:
 
-> The reported clean models exclude label-prior features that encode known Yamanishi or BindingDB membership. However, traditional row-stratified classifier results may be optimistic because the same ligands and targets can appear across train and test rows. Ligand-held-out evaluation is therefore used for the reranking analysis to better estimate generalization to new ligand affinity files.
+> The reported clean models exclude label-prior features that encode known Yamanishi or BindingDB membership. However, traditional row-stratified classifier results may be optimistic because the same ligands and targets can appear across train and test rows. We therefore also evaluated ligand-held-out and target-held-out splits to estimate generalization to new ligand affinity files and unseen targets.
 
 Raw result files:
 
@@ -384,8 +425,8 @@ The final clean model utilized 1,663 input features after excluding label-prior/
 
 ## Suggested Draft Text For Methods
 
-The traditional classifier was evaluated using three feature conditions: affinity/rank features only, all non-affinity ligand and protein features, and the complete clean feature set. The balanced dataset contained 2,719 Yamanishi-supported positive ligand-target pairs and 2,719 sampled unsupported pairs. Rows were split into train, validation, and test sets using a row-stratified 60/20/20 split with random seed 42. Six classifiers were evaluated: logistic regression, random forest, extra trees, histogram gradient boosting, support vector machine, and k-nearest neighbors. Models were compared using accuracy, F1 score, ROC-AUC, PR-AUC, false-positive rate, and false-negative rate.
+The traditional classifier was evaluated using three feature conditions: affinity/rank features only, all non-affinity ligand and protein features, and the complete clean feature set. The balanced dataset contained 2,719 Yamanishi-supported positive ligand-target pairs and 2,719 sampled unsupported pairs. Three train/validation/test protocols were evaluated with random seed 42: row-stratified, ligand-held-out, and target-held-out. Six classifiers were evaluated: logistic regression, random forest, extra trees, histogram gradient boosting, support vector machine, and k-nearest neighbors. Models were compared using accuracy, F1 score, ROC-AUC, PR-AUC, false-positive rate, and false-negative rate.
 
 ## Suggested Draft Text For Results
 
-Affinity/rank features alone provided moderate discrimination, with the best affinity-only model reaching test accuracy 0.716 and F1 0.728. In contrast, ligand chemistry and protein biology features without affinity/rank context reached test accuracy 0.917 and F1 0.915 using an Extra Trees classifier. Adding affinity/rank context to all chemistry and protein features produced similar performance, with test accuracy 0.915 and F1 0.913. Thus, the traditional balanced classifier reaches the 90%+ accuracy range when ligand and target feature coverage is strong, but affinity/rank features alone are insufficient and do not improve raw balanced accuracy when added to the full feature set in this experiment.
+Affinity/rank features alone provided moderate discrimination across split modes, with best test accuracy ranging from 0.704 to 0.732. In row-stratified evaluation, ligand chemistry and protein biology features without affinity/rank context reached test accuracy 0.917 and F1 0.915, while all features reached test accuracy 0.915 and F1 0.913. In ligand-held-out evaluation, the best no-affinity model reached test accuracy 0.929 and F1 0.931, while all features reached test accuracy 0.922 and F1 0.925. In target-held-out evaluation, performance was lower: the best no-affinity model reached test accuracy 0.789 and F1 0.780, while all features reached test accuracy 0.799 and F1 0.791. Thus, the traditional balanced classifier reaches the 90%+ accuracy range for row and ligand-held-out splits when ligand and target feature coverage is strong, but generalization to unseen targets is harder. Affinity/rank features alone are insufficient; they help most in the target-held-out split but do not improve the best row-stratified or ligand-held-out model.

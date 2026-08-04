@@ -77,7 +77,64 @@ def make_balanced_yamanishi_rows(rows: list[dict[str, str]], seed: int) -> list[
     return [balanced[int(index)] for index in order]
 
 
-def split_train_validation_test(y: np.ndarray, seed: int, test_size: float, validation_size: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def stratified_entity_labels(rows: list[dict[str, str]], entities: np.ndarray) -> np.ndarray | None:
+    labels = []
+    for entity in entities:
+        entity_rows = [row for row in rows if row["_split_entity"] == entity]
+        labels.append(int(any(row["classifier_label"] == "1" for row in entity_rows)))
+    labels_array = np.asarray(labels, dtype=int)
+    return labels_array if len(set(labels_array)) > 1 else None
+
+
+def split_entities(
+    rows: list[dict[str, str]],
+    entity_column: str,
+    seed: int,
+    test_size: float,
+    validation_size: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    for row in rows:
+        row["_split_entity"] = row[entity_column]
+    entity_by_row = np.asarray([row[entity_column] for row in rows])
+    entities = np.asarray(sorted(set(entity_by_row)))
+    entity_labels = stratified_entity_labels(rows, entities)
+    train_val_entities, test_entities = train_test_split(
+        entities,
+        test_size=test_size,
+        random_state=seed,
+        stratify=entity_labels,
+    )
+    train_val_labels = stratified_entity_labels(rows, train_val_entities)
+    relative_validation = validation_size / (1.0 - test_size)
+    train_entities, val_entities = train_test_split(
+        train_val_entities,
+        test_size=relative_validation,
+        random_state=seed + 1,
+        stratify=train_val_labels,
+    )
+    train_entities = set(train_entities)
+    val_entities = set(val_entities)
+    test_entities = set(test_entities)
+    train_idx = np.asarray([idx for idx, entity in enumerate(entity_by_row) if entity in train_entities])
+    val_idx = np.asarray([idx for idx, entity in enumerate(entity_by_row) if entity in val_entities])
+    test_idx = np.asarray([idx for idx, entity in enumerate(entity_by_row) if entity in test_entities])
+    return train_idx, val_idx, test_idx
+
+
+def split_train_validation_test(
+    rows: list[dict[str, str]],
+    y: np.ndarray,
+    split_mode: str,
+    seed: int,
+    test_size: float,
+    validation_size: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if split_mode == "ligand_held_out":
+        return split_entities(rows, "pubchem_cid", seed, test_size, validation_size)
+    if split_mode == "target_held_out":
+        return split_entities(rows, "uniprot_id", seed, test_size, validation_size)
+    if split_mode != "row_stratified":
+        raise ValueError(f"Unknown split mode: {split_mode}")
     all_idx = np.arange(len(y))
     train_val_idx, test_idx = train_test_split(
         all_idx,
@@ -178,33 +235,51 @@ def main() -> None:
     source_rows = read_rows(args.dataset)
     rows = make_balanced_yamanishi_rows(source_rows, args.seed)
     y = np.asarray([int(row["classifier_label"]) for row in rows], dtype=int)
-    train_idx, val_idx, test_idx = split_train_validation_test(y, args.seed, args.test_size, args.validation_size)
     feature_maps = load_feature_maps(args.data_dir, args.seed)
     models = make_models(args.seed)
 
     result_rows = []
-    for feature_set_name, columns in FEATURE_GROUPS.items():
-        X = numeric_matrix(rows, columns, feature_maps)
-        for model_name, model in models.items():
-            model.fit(X[train_idx], y[train_idx])
-            for split_name, split_idx in [
-                ("train", train_idx),
-                ("validation", val_idx),
-                ("test", test_idx),
-            ]:
-                y_score = scores(model, X[split_idx])
-                result_rows.append(
-                    {
-                        "Feature Set": feature_set_name,
-                        "Classifier": model_name,
-                        "Split": split_name,
-                        "Rows": len(split_idx),
-                        "Positives": int(np.sum(y[split_idx] == 1)),
-                        "Negatives": int(np.sum(y[split_idx] == 0)),
-                        "Features": len(columns),
-                        **evaluate(y[split_idx], y_score),
-                    }
-                )
+    split_manifests = {}
+    for split_mode in ["row_stratified", "ligand_held_out", "target_held_out"]:
+        train_idx, val_idx, test_idx = split_train_validation_test(
+            rows,
+            y,
+            split_mode,
+            args.seed,
+            args.test_size,
+            args.validation_size,
+        )
+        split_manifests[split_mode] = {
+            "train_rows": int(len(train_idx)),
+            "validation_rows": int(len(val_idx)),
+            "test_rows": int(len(test_idx)),
+            "train_positives": int(np.sum(y[train_idx] == 1)),
+            "validation_positives": int(np.sum(y[val_idx] == 1)),
+            "test_positives": int(np.sum(y[test_idx] == 1)),
+        }
+        for feature_set_name, columns in FEATURE_GROUPS.items():
+            X = numeric_matrix(rows, columns, feature_maps)
+            for model_name, model in models.items():
+                model.fit(X[train_idx], y[train_idx])
+                for split_name, split_idx in [
+                    ("train", train_idx),
+                    ("validation", val_idx),
+                    ("test", test_idx),
+                ]:
+                    y_score = scores(model, X[split_idx])
+                    result_rows.append(
+                        {
+                            "Split Mode": split_mode,
+                            "Feature Set": feature_set_name,
+                            "Classifier": model_name,
+                            "Split": split_name,
+                            "Rows": len(split_idx),
+                            "Positives": int(np.sum(y[split_idx] == 1)),
+                            "Negatives": int(np.sum(y[split_idx] == 0)),
+                            "Features": len(columns),
+                            **evaluate(y[split_idx], y_score),
+                        }
+                    )
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
     metrics_path = args.results_dir / f"{args.output_prefix}_metrics.csv"
@@ -221,12 +296,9 @@ def main() -> None:
         "negative_rows": int(np.sum(y == 0)),
         "seed": args.seed,
         "split": {
-            "train_rows": int(len(train_idx)),
-            "validation_rows": int(len(val_idx)),
-            "test_rows": int(len(test_idx)),
             "test_size": args.test_size,
             "validation_size": args.validation_size,
-            "split_mode": "row-stratified train/validation/test",
+            "split_modes": split_manifests,
         },
         "feature_groups": {name: len(columns) for name, columns in FEATURE_GROUPS.items()},
         "excluded_label_prior_features": [
@@ -244,7 +316,7 @@ def main() -> None:
     test_rows = [row for row in result_rows if row["Split"] == "test"]
     for row in sorted(test_rows, key=lambda item: item["Accuracy"], reverse=True)[:10]:
         print(
-            f"{row['Feature Set']:34s} {row['Classifier']:22s} "
+            f"{row['Split Mode']:16s} {row['Feature Set']:34s} {row['Classifier']:22s} "
             f"acc={row['Accuracy']:.3f} f1={row['F1 Score']:.3f} "
             f"roc_auc={row['ROC AUC']:.3f} pr_auc={row['PR AUC']:.3f}"
         )
