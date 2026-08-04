@@ -1,0 +1,27 @@
+{
+  "dataset": "data/processed/affinity_hit_value_dataset_compact.csv",
+  "label_mode": "yamanishi positives vs sampled unsupported/unlabeled negatives",
+  "rows": 5438,
+  "positive_rows": 2719,
+  "negative_rows": 2719,
+  "seed": 42,
+  "split": {
+    "train_rows": 3262,
+    "validation_rows": 1088,
+    "test_rows": 1088,
+    "test_size": 0.2,
+    "validation_size": 0.2,
+    "split_mode": "row-stratified train/validation/test"
+  },
+  "feature_groups": {
+    "affinity_group_only": 9,
+    "all_features_minus_affinity_group": 1654,
+    "all_features": 1663
+  },
+  "excluded_label_prior_features": [
+    "ligand_yamanishi_degree_any",
+    "target_yamanishi_degree_any",
+    "target_in_yamanishi_universe",
+    "target_in_bindingdb_universe"
+  ]
+}
